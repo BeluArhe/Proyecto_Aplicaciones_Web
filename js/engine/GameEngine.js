@@ -5,6 +5,7 @@ class GameEngine {
         this.lastTime = 0;
         this.accumulator = 0;
         this.timestep = 1000 / 60; // 60 FPS
+        this.rafId = null;
         
         // Sistemas
         this.game = null;
@@ -35,8 +36,8 @@ class GameEngine {
         // Renderizar
         this.render();
         
-        // Siguiente frame
-        requestAnimationFrame((time) => this.gameLoop(time));
+        // Siguiente frame (guardamos el id para poder cancelar)
+        this.rafId = requestAnimationFrame((time) => this.gameLoop(time));
     }
 
     update(deltaTime) {
@@ -46,6 +47,7 @@ class GameEngine {
     }
 
     render() {
+        if (this.state === 'STOPPED') return;
         // Limpiar canvas
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
@@ -86,5 +88,15 @@ class GameEngine {
         this.ctx.fillText(`Velocidad: ${this.game.kitten.speed}`, 10, 40);
         this.ctx.fillText(`Estado: ${this.state}`, 10, 60);
         this.ctx.fillText(`Controles: WASD para mover`, 10, 80);
+    }
+
+    stop() {
+        // Cancela el bucle principal y marca el motor como detenido
+        if (this.rafId) {
+            cancelAnimationFrame(this.rafId);
+            this.rafId = null;
+        }
+        this.state = 'STOPPED';
+        console.log('🛑 GameEngine detenido');
     }
 }

@@ -8,11 +8,44 @@
 </head>
 <body>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
-    
+
+    <!-- Menú overlay -->
+    <div id="menu" class="menu-overlay">
+      <h1>Beach Kitten Cleanup</h1>
+      <button id="startBtn">Iniciar juego</button>
+      <button id="levelsBtn">Niveles</button>
+      <button id="exitBtn">Salir</button>
+
+      <div id="levelsPanel" class="hidden">
+        <label>Selecciona nivel:
+          <select id="levelSelect">
+            <option value="1">Nivel 1</option>
+            <option value="2">Nivel 2</option>
+            <option value="3">Nivel 3</option>
+          </select>
+        </label>
+        <button id="startWithLevelBtn">Iniciar</button>
+        <button id="backBtn">Volver</button>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- Overlay de pausa (mostrado solo durante la partida al pulsar ESC) -->
+    <div id="pauseOverlay" class="menu-overlay hidden">
+      <div id="pausePanel">
+        <p style="margin:0 0 8px 0; font-size:18px;">Juego en pausa</p>
+        <button id="resumeBtn">Continuar</button>
+        <button id="returnMenuBtn">Volver al menú principal</button>
+        <button id="exitFromPauseBtn">Salir</button>
+      </div>
+    </div>
+
     <script src="js/engine/GameEngine.js"></script>
     <script src="js/utils/InputHandler.js"></script>
     <script src="js/entities/Kitten.js"></script>
     <script src="js/game/Game.js"></script>
     <script src="js/main.js"></script>
+    <script src="js/menu.js"></script>
 </body>
 </html>
