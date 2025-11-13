@@ -15,7 +15,7 @@ body {
     box-shadow: 0 0 20px rgba(0,0,0,0.3);
 }
 
-/* Menu overlay styles */
+/* Menu overlay styles - Base de la ventana modal */
 .menu-overlay {
     position: fixed;
     inset: 0;
@@ -23,33 +23,71 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background: rgba(0, 0, 0, 0.55);
-    color: #fff;
+    /* Fondo con un color pastel suave (lavanda) y más transparente */
+    background: rgba(230, 230, 250, 0.85); /* Lavanda muy claro */
+    color: #4B0082; 
     z-index: 1000;
+    backdrop-filter: blur(6px); /* Un poco más de desenfoque */
 }
 
+/* Título del juego/menú - LETRA IMPRESIONANTE */
 .menu-overlay h1 {
-    margin: 0 0 12px 0;
-    font-size: 36px;
+    margin: 0 0 30px 0;
+    font-size: 68px; /* ¡Más grande! */
     text-align: center;
+    /* Fuente caligráfica y dulce para un toque impresionante */
+    font-family: 'Pacifico', cursive; 
+    /* Colores degradados sutiles para el título */
+    background: linear-gradient(45deg, #FF69B4, #FFD700); /* Rosa fuerte a Dorado */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    /* Sombra de texto suave y doble */
+    text-shadow: 4px 4px 0px rgba(255, 255, 255, 0.7), 
+                 6px 6px 0px rgba(255, 192, 203, 0.5); /* Blanco y Rosa claro */
+    /* Pequeña rotación para darle un toque juguetón */
+    transform: rotate(-2deg); 
 }
 
+/* Estilo general para todos los botones del menú */
 .menu-overlay button {
-    margin: 8px 6px;
-    padding: 10px 16px;
-    font-size: 16px;
+    margin: 12px 10px;
+    padding: 14px 30px;
+    font-size: 24px; /* Letra de botón más grande */
+    font-weight: bold;
     cursor: pointer;
-    border-radius: 6px;
-    border: none;
+    border-radius: 30px; /* ¡Máxima redondez! */
+    border: 5px solid #FFC0CB; /* Borde de un rosa más claro y grueso */
+    background: #FFB6C1; /* Fondo de botón rosa/coral */
+    color: #A52A2A; /* Texto marrón rojizo oscuro */
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Transición elástica */
+    /* Sombra que parece una almohadilla de gato (paw print) */
+    box-shadow: 0 8px 0px 0px #FFD700; /* Sombra sólida amarilla abajo */
 }
 
+/* Efecto hover (al pasar el ratón) para los botones */
+.menu-overlay button:hover {
+    background: #FF88AA; /* Rosa brillante */
+    /* El efecto elástico de la transición hace que salte */
+    transform: translateY(-4px); 
+    box-shadow: 0 12px 0px 0px #FFC0CB; /* La sombra se mueve y se hace más grande */
+}
+
+/* Panel o contenedor de opciones adicionales (Selector de niveles) */
 #levelsPanel {
-    margin-top: 12px;
-    background: rgba(255,255,255,0.95);
-    color: #000;
-    padding: 12px;
-    border-radius: 8px;
+    margin-top: 35px;
+    background: #FFFFFF; /* Fondo blanco puro */
+    color: #4B0082;
+    padding: 25px;
+    border-radius: 25px; 
+    /* El borde es como un marco de algodón */
+    border: 8px solid #F0F8FF; /* Un borde exterior muy claro (AliceBlue) */
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+    text-align: center;
+    /* Pequeña inclinación para un toque extra */
+    transform: rotate(1deg); 
 }
 
 /* Utility hidden class */
-.hidden { display: none !important; }
+.hidden { 
+    display: none !important; 
+}
