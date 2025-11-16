@@ -1,0 +1,78 @@
+/* Styles para la página de selección de niveles */
+.levels-page {
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-start;
+	padding: 40px 20px;
+	background: linear-gradient(180deg, #F0F8FF 0%, #E6F7FF 100%);
+}
+
+.levels-page h1 {
+	font-family: 'Pacifico', cursive;
+	font-size: 48px;
+	color: #4B0082;
+	margin-bottom: 18px;
+}
+
+.levels-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+	gap: 20px;
+	width: 100%;
+	max-width: 920px;
+}
+
+.level-card {
+	background: #fff;
+	border-radius: 18px;
+	padding: 18px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+	cursor: pointer;
+	transition: transform 0.15s ease, box-shadow 0.15s ease;
+	position: relative;
+	user-select: none;
+}
+
+.level-card:hover { transform: translateY(-6px); box-shadow: 0 18px 30px rgba(0,0,0,0.18); }
+
+.level-number {
+	font-size: 36px;
+	font-weight: 700;
+	color: #333;
+	margin-bottom: 8px;
+}
+
+.level-label {
+	font-size: 14px;
+	color: #666;
+}
+
+.level-card.locked {
+	opacity: 0.7;
+	cursor: default;
+}
+
+.lock-icon {
+	position: absolute;
+	right: 12px;
+	top: 12px;
+	font-size: 20px;
+	color: #8B0000;
+}
+
+.back-link {
+	margin-top: 22px;
+	text-decoration: none;
+	color: #4B0082;
+	font-weight: bold;
+}
+
+.level-card.locked .level-number { color: #888; }
+
+.level-card.unlocked { background: linear-gradient(180deg,#FFFDF5,#FFF5E0); }

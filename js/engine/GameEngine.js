@@ -7,6 +7,9 @@ class GameEngine {
         this.timestep = 1000 / 60; // 60 FPS
         this.rafId = null;
         this.waveTime = 0; // tiempo para animar olas
+        // parámetros ajustables de las olas
+        this.waveSpeed = 1.4; // controla el desplazamiento de la fase de las olas
+        this.waveTimeScale = 1.0; // multiplicador para la velocidad de avance del tiempo de ola
         
         // Sistemas
         this.game = null;
@@ -21,7 +24,11 @@ class GameEngine {
         
         // Inicializar sistemas
         this.inputHandler = new InputHandler();
-        this.game = new Game(this);
+        // Game puede recibir un nivel a través de init's args; default 1
+        const level = (arguments && arguments.length) ? arguments[0] : 1;
+        this.game = new Game(this, level);
+        // HUD: muestra contador en pantalla
+        try { this.hud = new HUD(this.game); } catch (e) { this.hud = null; }
         
         // Iniciar game loop
         this.gameLoop();
@@ -31,7 +38,7 @@ class GameEngine {
         const deltaTime = currentTime - this.lastTime;
         this.lastTime = currentTime;
         // actualizar tiempo para animación de olas (en segundos)
-        this.waveTime += deltaTime / 1000;
+        this.waveTime += (deltaTime / 1000) * (this.waveTimeScale || 1);
 
         // Actualizar física y lógica
         this.update(deltaTime);
@@ -59,9 +66,14 @@ class GameEngine {
         
         // Renderizar juego
         this.game.render(this.ctx);
+
+        // Renderizar HUD encima
+        if (this.hud && typeof this.hud.render === 'function') {
+            this.hud.render(this.ctx);
+        }
         
-        // Dibujar información de debug
-        this.drawDebugInfo();
+        // Dibujar información de debug (desactivado)
+        // this.drawDebugInfo();
     }
 
     drawBackground() {
@@ -125,8 +137,8 @@ class GameEngine {
         const amplitude = Math.max(28, this.canvas.height * 0.08);
         // frecuencia más baja para olas más largas y visibles
         const frequency = 0.01;
-        // velocidad de desplazamiento de las olas (ligeramente más lenta)
-        const speed = 1.4;
+        // velocidad de desplazamiento de las olas (ajustable)
+        const speed = (typeof this.waveSpeed === 'number') ? this.waveSpeed : 1.4;
         return base + Math.sin(x * frequency + this.waveTime * speed) * amplitude;
     }
 

@@ -2,11 +2,11 @@ class Kitten {
     constructor(game) {
         this.game = game;
         
-        // Posición y tamaño
+        // Posición y tamaño (reducción: gatito más pequeño)
         this.x = 100;
         this.y = 300;
-        this.width = 50;
-        this.height = 50;
+        this.width = 36;
+        this.height = 36;
         
         // Propiedades de movimiento
         this.speed = 5;
@@ -27,8 +27,8 @@ class Kitten {
         // propiedades del recorte/escala calculadas al cargar
         this.spriteTrim = { sx: 0, sy: 0, sw: 0, sh: 0 };
         // escala multiplicadora para hacer el sprite más grande o pequeño (1.0 = tamaño base)
-        // Ajustado para 'más grande' según petición
-        this.spriteScale = 2.6;
+        // Reducida para mantener proporciones con el tamaño más pequeño
+        this.spriteScale = 2.0;
         this.drawWidth = this.width * this.spriteScale;
         this.drawHeight = this.height * this.spriteScale;
         this.drawOffsetX = 0;
@@ -40,6 +40,11 @@ class Kitten {
         // bolsa para recolectar basura
         this.bag = []; // array de objetos { type: 'plastic'|'glass'|... }
         this.bagCapacity = 8;
+
+        // invulnerabilidad visual al recibir daño
+        this.isInvulnerable = false;
+        this._invulTimer = 0; // segundos restantes
+        this._invulElapsed = 0;
 
         // handler reutilizable para procesar la imagen cargada
         const processSprite = (img) => {
@@ -124,6 +129,17 @@ class Kitten {
         this.handleInput();
         this.applyMovement();
         this.applyBoundaries();
+        // actualizar invulnerabilidad
+        if (this.isInvulnerable) {
+            const s = (deltaTime || 0) / 1000;
+            this._invulTimer -= s;
+            this._invulElapsed += s;
+            if (this._invulTimer <= 0) {
+                this.isInvulnerable = false;
+                this._invulTimer = 0;
+                this._invulElapsed = 0;
+            }
+        }
     }
 
     // Añade un elemento a la bolsa; devuelve true si se pudo añadir
@@ -218,6 +234,26 @@ class Kitten {
         ctx.restore();
     }
 
+    // Devuelve el rectángulo aproximado de la bolsa en coordenadas del mundo
+    getBagRect() {
+        const dw = this.drawWidth || this.width;
+        const dh = this.drawHeight || this.height;
+        const dx = this.x + (this.drawOffsetX || 0);
+        const dy = this.y + (this.drawOffsetY || 0);
+        const centerX = dx + dw / 2;
+        const centerY = dy + dh / 2;
+
+        const bagW = Math.max(12, dw * 0.55);
+        const bagH = Math.max(14, dh * 0.55);
+        const sideOffset = (dw / 2) + 6;
+        let bagX;
+        if (this.direction === 'right') bagX = centerX + sideOffset;
+        else bagX = centerX - sideOffset - bagW;
+        const bagY = centerY + dh * 0.18;
+
+        return { x: bagX, y: bagY, w: bagW, h: bagH };
+    }
+
     handleInput() {
         const input = this.game.engine.inputHandler;
         const movement = input.getMovement();
@@ -292,6 +328,14 @@ class Kitten {
     }
 
     render(ctx) {
+        // soportar parpadeo si está invulnerable
+        ctx.save();
+        if (this.isInvulnerable) {
+            // parpadeo rítmico usando el temporizador interno
+            const alpha = 0.35 + 0.65 * Math.abs(Math.sin(this._invulElapsed * 20));
+            ctx.globalAlpha = alpha;
+        }
+
         // Efecto de balanceo si está en el agua (no altera la posición real)
         const inWater = this.isInWater();
         let renderY = this.y;
@@ -354,6 +398,7 @@ class Kitten {
             try {
                 this.drawBag(ctx, centerX, centerY, dw, dh);
             } catch(e) {}
+            ctx.restore();
             return; // ya se dibujó el sprite
         }
 
@@ -575,5 +620,13 @@ class Kitten {
             const approxH = this.height * (this.spriteScale || 1);
             this.drawBag(ctx, cx, cy, approxW, approxH);
         } catch (e) {}
+        ctx.restore();
+    }
+
+    // activar invulnerabilidad visual por duración (segundos)
+    setInvulnerable(duration) {
+        this.isInvulnerable = true;
+        this._invulTimer = Math.max(0, duration || 1.0);
+        this._invulElapsed = 0;
     }
 }

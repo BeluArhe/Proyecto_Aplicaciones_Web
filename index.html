@@ -41,10 +41,41 @@
       </div>
     </div>
 
+    <!-- Overlay de nivel completado -->
+    <div id="levelCompleteOverlay" class="menu-overlay hidden">
+      <div id="levelCompletePanel" style="text-align:center; padding: 24px; background: white; border-radius:16px;">
+        <h2 id="levelCompleteTitle">Nivel completado</h2>
+        <p id="levelCompleteTime" style="margin:8px 0 18px 0; font-size:18px;">Tiempo: 00:00</p>
+        <div style="display:flex; gap:12px; justify-content:center;">
+          <button id="repeatLevelBtn">Repetir partida</button>
+          <button id="nextLevelBtn">Siguiente nivel</button>
+          <button id="returnMenuFromCompleteBtn">Volver menú principal</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overlay de Game Over -->
+    <div id="gameOverOverlay" class="menu-overlay hidden">
+      <div id="gameOverPanel" style="text-align:center; padding: 24px; background: white; border-radius:16px;">
+        <h2 id="gameOverTitle">Game Over</h2>
+        <p id="gameOverMsg" style="margin:8px 0 18px 0; font-size:18px;">El gatito fue atrapado...</p>
+        <div style="display:flex; gap:12px; justify-content:center;">
+          <button id="repeatAfterGameOverBtn">Repetir</button>
+          <button id="returnMenuFromGameOverBtn">Volver menú</button>
+        </div>
+      </div>
+    </div>
+
     <script src="js/engine/GameEngine.js"></script>
     <script src="js/utils/InputHandler.js"></script>
     <script src="js/entities/Kitten.js"></script>
+    <script src="js/entities/Trash.js"></script>
+    <script src="js/ui/HUD.js"></script>
+    <script src="js/game/WaveManager.js"></script>
     <script src="js/game/Game.js"></script>
+    <script src="js/entities/Shark.js"></script>
+    <script src="js/entities/Crab.js"></script>
+    <script src="js/entities/Lighthouse.js"></script>
     <script src="js/main.js"></script>
     <script src="js/menu.js"></script>
 </body>

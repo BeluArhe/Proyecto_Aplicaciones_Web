@@ -30,8 +30,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function startGameWithLevel(level) {
         if (!gameEngine) {
             gameEngine = new GameEngine();
-            // If you later add level-specific setup, you can pass `level` to the engine or game here.
-            gameEngine.init();
+            // Pasar el nivel al inicializar el engine/game
+            // ocultar overlays si están visibles
+            try { document.getElementById('levelCompleteOverlay').classList.add('hidden'); } catch (e) {}
+            try { document.getElementById('gameOverOverlay').classList.add('hidden'); } catch (e) {}
+            gameEngine.init(level);
             window.gameEngine = gameEngine; // useful for debugging from console
         }
     }
@@ -42,6 +45,23 @@ document.addEventListener('DOMContentLoaded', () => {
         startGameWithLevel(levelSelect ? levelSelect.value : 1);
         console.log('✅ Juego iniciado');
     }
+
+    // Auto-start if URL contains ?level=X
+    (function autoStartFromQuery() {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const lvl = params.get('level');
+            if (lvl) {
+                // start game with that level
+                hideMenu();
+                showCanvas();
+                startGameWithLevel(lvl);
+                console.log('🔁 Auto-iniciando nivel desde URL:', lvl);
+            }
+        } catch (e) {
+            // ignore
+        }
+    })();
 
     // Manejo de tecla Escape para pausa/menu
     document.addEventListener('keydown', (event) => {
@@ -71,7 +91,8 @@ document.addEventListener('DOMContentLoaded', () => {
     startBtn.addEventListener('click', () => startGame());
 
     levelsBtn.addEventListener('click', () => {
-        if (levelsPanel) levelsPanel.classList.remove('hidden');
+        // Ir directamente a la pantalla de selección de niveles
+        window.location.href = 'levels.html';
     });
 
     backBtn.addEventListener('click', () => {
