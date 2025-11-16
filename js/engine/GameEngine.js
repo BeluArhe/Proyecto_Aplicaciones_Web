@@ -6,6 +6,7 @@ class GameEngine {
         this.accumulator = 0;
         this.timestep = 1000 / 60; // 60 FPS
         this.rafId = null;
+        this.waveTime = 0; // tiempo para animar olas
         
         // Sistemas
         this.game = null;
@@ -29,6 +30,8 @@ class GameEngine {
     gameLoop(currentTime = 0) {
         const deltaTime = currentTime - this.lastTime;
         this.lastTime = currentTime;
+        // actualizar tiempo para animación de olas (en segundos)
+        this.waveTime += deltaTime / 1000;
 
         // Actualizar física y lógica
         this.update(deltaTime);
@@ -63,22 +66,47 @@ class GameEngine {
 
     drawBackground() {
         const ctx = this.ctx;
-        
-        // Cielo
-        ctx.fillStyle = '#87CEEB';
-        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height * 0.6);
-        
-        // Arena
-        ctx.fillStyle = '#F4A460';
-        ctx.fillRect(0, this.canvas.height * 0.6, this.canvas.width, this.canvas.height * 0.4);
-        
-        // Línea del mar
-        ctx.strokeStyle = '#1E90FF';
-        ctx.lineWidth = 3;
+        // parámetros del mar
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+        const baseWaterY = height * 0.78; // borde entre agua y arena (más agua que tierra)
+        const surfaceBase = height * 0.48; // altura base de la superficie (donde aparecen olas)
+
+        // Cielo con degradado de atardecer
+        const skyTop = 0;
+        const skyBottom = Math.max(0, surfaceBase - 20);
+        const skyGradient = ctx.createLinearGradient(0, skyTop, 0, skyBottom);
+        skyGradient.addColorStop(0, '#FF7E5F'); // naranja
+        skyGradient.addColorStop(0.5, '#FD5E53'); // rojo suave
+        skyGradient.addColorStop(1, '#FFD194'); // amarillo tenue
+        ctx.fillStyle = skyGradient;
+        ctx.fillRect(0, 0, width, skyBottom);
+
+        // Agua con olas (dibujamos la línea de superficie usando getWaterSurface)
+        ctx.fillStyle = '#1E90FF';
         ctx.beginPath();
-        ctx.moveTo(0, this.canvas.height * 0.6);
-        ctx.lineTo(this.canvas.width, this.canvas.height * 0.6);
+        ctx.moveTo(0, baseWaterY);
+        for (let x = 0; x <= width; x += 8) {
+            ctx.lineTo(x, this.getWaterSurface(x));
+        }
+        ctx.lineTo(width, baseWaterY);
+        ctx.closePath();
+        ctx.fill();
+
+        // Línea de espuma/olas (más clara)
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        for (let x = 0; x <= width; x += 8) {
+            const y = this.getWaterSurface(x);
+            if (x === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
         ctx.stroke();
+
+        // Arena debajo del agua
+        ctx.fillStyle = '#F4A460';
+        ctx.fillRect(0, baseWaterY, width, height - baseWaterY);
     }
 
     drawDebugInfo() {
@@ -88,6 +116,18 @@ class GameEngine {
         this.ctx.fillText(`Velocidad: ${this.game.kitten.speed}`, 10, 40);
         this.ctx.fillText(`Estado: ${this.state}`, 10, 60);
         this.ctx.fillText(`Controles: WASD para mover`, 10, 80);
+    }
+
+    getWaterSurface(x) {
+        // Devuelve la coordenada y de la superficie del agua en la posición x
+        const base = this.canvas.height * 0.48;
+        // Olas más grandes: aumentar la amplitud relativa aún más
+        const amplitude = Math.max(28, this.canvas.height * 0.08);
+        // frecuencia más baja para olas más largas y visibles
+        const frequency = 0.01;
+        // velocidad de desplazamiento de las olas (ligeramente más lenta)
+        const speed = 1.4;
+        return base + Math.sin(x * frequency + this.waveTime * speed) * amplitude;
     }
 
     stop() {
