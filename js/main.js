@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const pausePanel = document.getElementById('pausePanel');
     const resumeBtn = document.getElementById('resumeBtn');
     const returnMenuBtn = document.getElementById('returnMenuBtn');
-    const exitFromPauseBtn = document.getElementById('exitFromPauseBtn');
     const settingsOverlay = document.getElementById('settingsOverlay');
     const settingsBtn = document.getElementById('settingsBtn');
     const settingsBtnPause = document.getElementById('settingsBtnPause');
@@ -27,6 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const howToBtn = document.getElementById('howToBtn');
     const howToOverlay = document.getElementById('howToOverlay');
     const howToCloseBtn = document.getElementById('howToCloseBtn');
+    const exitOverlay = document.getElementById('exitOverlay');
+    const exitReturnBtn = document.getElementById('exitReturnBtn');
 
     let gameEngine = null;
 
@@ -404,9 +405,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     exitBtn.addEventListener('click', () => {
-        // En navegadores normales no se puede cerrar la pestaña desde JS sin interacción de ventana.
-        console.log('⛔ Salir pulsado — oculta menú');
+        // If no game is active (we're in the main menu), show the fullscreen exit image with a 'Regresar' button
+        try {
+            if (!gameEngine && exitOverlay) {
+                // hide menu and canvas, show exit overlay
+                try { menu.classList.add('hidden'); } catch (e) {}
+                try { canvas.classList.add('hidden'); } catch (e) {}
+                exitOverlay.classList.remove('hidden');
+                return;
+            }
+        } catch (e) {}
+        // Fallback: same behaviour as before
+        try { console.log('⛔ Salir pulsado — oculta menú'); } catch (e) {}
         hideMenu();
+    });
+
+    // Close the exit overlay and return to menu
+    if (exitReturnBtn) exitReturnBtn.addEventListener('click', () => {
+        try { if (exitOverlay) exitOverlay.classList.add('hidden'); } catch (e) {}
+        try { if (menu && !gameEngine) menu.classList.remove('hidden'); } catch (e) {}
     });
 
     // Handlers del panel de pausa
@@ -433,10 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
         menu.classList.remove('hidden');
     });
 
-    if (exitFromPauseBtn) exitFromPauseBtn.addEventListener('click', () => {
-        // Intentar salir: redirigir a about:blank como comportamiento de "salir".
-        window.location.href = 'about:blank';
-    });
+    // 'Salir' option removed from pause panel; no handler required here.
 
     console.log('🎮 Menú listo — pulsa "Iniciar juego"');
 });

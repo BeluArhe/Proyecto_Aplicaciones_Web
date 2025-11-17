@@ -66,13 +66,12 @@
 
     <!-- Overlay de pausa (mostrado solo durante la partida al pulsar ESC) -->
     <div id="pauseOverlay" class="menu-overlay hidden">
-      <div id="pausePanel">
-        <p style="margin:0 0 8px 0; font-size:18px;">Juego en pausa</p>
-        <button id="resumeBtn">Continuar</button>
-        <button id="returnMenuBtn">Volver al menú principal</button>
-        <button id="exitFromPauseBtn">Salir</button>
-        <div style="margin-top:12px;">
-          <button id="settingsBtnPause" style="padding:8px 12px; font-size:14px;">Configuraciones</button>
+      <div id="pausePanel" style="text-align:center; padding:18px; background:white; border-radius:12px; min-width:320px;">
+        <div id="pauseTitle" style="display:block; padding:10px 14px; font-size:16px; font-weight:700; background:#f5f5f5; border-radius:8px; margin-bottom:12px;">Juego en pausa</div>
+        <div style="display:flex; gap:10px; justify-content:center; flex-direction:column;">
+          <button id="resumeBtn" style="padding:10px 14px; font-size:16px;">Continuar</button>
+          <button id="settingsBtnPause" style="padding:10px 14px; font-size:16px;">Configuraciones</button>
+          <button id="returnMenuBtn" style="padding:10px 14px; font-size:16px;">Volver al menú principal</button>
         </div>
       </div>
     </div>
@@ -148,6 +147,14 @@
           <button id="repeatAfterGameOverBtn">Repetir</button>
           <button id="returnMenuFromGameOverBtn">Volver menú</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Overlay de Salir (pantalla completa con gatito) -->
+    <div id="exitOverlay" class="menu-overlay hidden" style="align-items:center; justify-content:center; background:#000;">
+      <div id="exitPanel" style="position:relative; width:25%; height:25%; display:flex; align-items:center; justify-content:center;">
+        <img id="exitKittenImg" src="assets/gatito_salir.png" alt="Gatito - Salir" style="width:100vw; height:100vh; object-fit:cover; display:block;" />
+        <button id="exitReturnBtn" style="position:absolute; bottom:28px; left:50%; transform:translateX(-50%); padding:12px 18px; font-size:18px; border-radius:8px; background:rgba(255,255,255,0.9);">Regresar</button>
       </div>
     </div>
 
