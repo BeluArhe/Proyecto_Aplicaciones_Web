@@ -31,6 +31,8 @@ class GameEngine {
         // HUD: muestra contador en pantalla
         try { this.hud = new HUD(this.game); } catch (e) { this.hud = null; }
         
+        // Evitar que el primer deltaTime sea enorme al iniciar (causa que elapsedTime se infle)
+        try { this.lastTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : 0; } catch (e) { this.lastTime = 0; }
         // Iniciar game loop
         this.gameLoop();
     }
