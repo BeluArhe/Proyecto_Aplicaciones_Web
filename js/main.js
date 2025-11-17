@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const chooseCharacterBtn = document.getElementById('chooseCharacterBtn');
     const characterOverlay = document.getElementById('characterOverlay');
     const closeCharBtn = document.getElementById('closeCharBtn');
+    const howToBtn = document.getElementById('howToBtn');
+    const howToOverlay = document.getElementById('howToOverlay');
+    const howToCloseBtn = document.getElementById('howToCloseBtn');
 
     let gameEngine = null;
 
@@ -154,6 +157,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 // if menu was hidden because settings opened from main and no game running, restore it
                 if (menu && !gameEngine) menu.classList.remove('hidden');
             });
+            // Cómo jugar handlers
+            try {
+                if (howToBtn) howToBtn.addEventListener('click', () => {
+                    if (howToOverlay) howToOverlay.classList.remove('hidden');
+                    if (menu) menu.classList.add('hidden');
+                });
+                if (howToCloseBtn) howToCloseBtn.addEventListener('click', () => {
+                    if (howToOverlay) howToOverlay.classList.add('hidden');
+                    if (menu && !gameEngine) menu.classList.remove('hidden');
+                });
+            } catch (e) {}
         } catch (e) { /* ignore if elements missing */ }
 
         // Wire mute checkbox in settings

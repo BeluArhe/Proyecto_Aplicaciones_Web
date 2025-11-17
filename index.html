@@ -18,6 +18,9 @@
       </div>
       <button id="levelsBtn">Niveles</button>
       <div style="margin-top:8px;">
+        <button id="howToBtn" style="padding:10px 14px; font-size:16px;">¿Cómo jugar?</button>
+      </div>
+      <div style="margin-top:8px;">
         <button id="settingsBtn" style="padding:10px 14px; font-size:16px;">Configuraciones</button>
       </div>
       <button id="exitBtn">Salir</button>
@@ -37,6 +40,28 @@
       
     </div>
 
+    </div>
+
+    <!-- Overlay de 'Cómo jugar' -->
+    <div id="howToOverlay" class="menu-overlay hidden">
+      <div id="howToPanel" style="text-align:left; padding:20px; background:white; border-radius:12px; min-width:360px; max-width:640px;">
+        <h2 style="margin:0 0 8px 0; text-align:center;">¿Cómo jugar?</h2>
+        <div style="font-size:15px; line-height:1.4;">
+          <p><strong>Objetivo:</strong> Recoger la cantidad de basuras indicada en cada nivel antes de quedarte sin vidas.</p>
+          <p><strong>Controles:</strong></p>
+          <ul>
+            <li><strong>Flechas / WASD:</strong> Mover al gatito.</li>
+            <li><strong>ESC:</strong> Pausar y abrir menú de pausa.</li>
+          </ul>
+          <p><strong>Vidas y peligros:</strong> Algunos niveles tienen obstáculos (tiburón, cangrejo, faro) que quitan vidas.</p>
+          <p><strong>Progreso:</strong> Verás un contador de basuras y una barra de progreso en pantalla.</p>
+          <p><strong>Mejor tiempo:</strong> El juego guarda el mejor tiempo por nivel y se muestra en la esquina superior izquierda.</p>
+          <p>¡Buena suerte y limpia la playa!</p>
+        </div>
+        <div style="margin-top:12px; display:flex; gap:10px; justify-content:center;">
+          <button id="howToCloseBtn" style="padding:8px 12px;">Cerrar</button>
+        </div>
+      </div>
     </div>
 
     <!-- Overlay de pausa (mostrado solo durante la partida al pulsar ESC) -->
