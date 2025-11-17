@@ -28,9 +28,11 @@ class GameEngine {
         // Game puede recibir un nivel a través de init's args; default 1
         const level = (arguments && arguments.length) ? arguments[0] : 1;
         this.game = new Game(this, level);
+        // Asegurar que el cronómetro del juego empieza en cero al iniciar un nivel
+        try { if (this.game) this.game.elapsedTime = 0; } catch (e) {}
         // HUD: muestra contador en pantalla
         try { this.hud = new HUD(this.game); } catch (e) { this.hud = null; }
-        
+
         // Evitar que el primer deltaTime sea enorme al iniciar (causa que elapsedTime se infle)
         try { this.lastTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : 0; } catch (e) { this.lastTime = 0; }
         // Iniciar game loop
