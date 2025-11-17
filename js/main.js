@@ -374,12 +374,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentEngine.state = 'PLAYING';
                 if (pauseOverlay) pauseOverlay.classList.add('hidden');
             } else {
-                // Si no hay juego en curso, mostrar/ocultar menú principal
-                if (menu.classList.contains('hidden')) {
-                    menu.classList.remove('hidden');
-                } else {
-                    menu.classList.add('hidden');
-                }
+                // Si no hay juego en curso, no hacer nada al pulsar ESC (evita mostrar canvas en blanco)
+                // Mantener cualquier overlay existente; no alternar el menú.
             }
         }
     });
