@@ -29,7 +29,7 @@ class GameEngine {
         const level = (arguments && arguments.length) ? arguments[0] : 1;
         this.game = new Game(this, level);
         // Asegurar que el cronómetro del juego empieza en cero al iniciar un nivel
-        try { if (this.game) this.game.elapsedTime = 0; } catch (e) {}
+        try { if (this.game) { this.game.elapsedTime = 0; this.game._timeJustReset = true; } } catch (e) {}
         // HUD: muestra contador en pantalla
         try { this.hud = new HUD(this.game); } catch (e) { this.hud = null; }
 

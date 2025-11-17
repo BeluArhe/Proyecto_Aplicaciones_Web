@@ -6,6 +6,10 @@ class HUD {
         this.bgColor = 'rgba(0,0,0,0.45)';
         this.textColor = '#FFFFFF';
         this.font = '18px Arial';
+        // animación de reinicio de temporizador
+        this._resetAnimStart = null;
+        this._resetAnimDuration = 700; // ms
+        this._resetAnimScale = 0.35; // escala máxima adicional
     }
 
     render(ctx) {
@@ -63,6 +67,17 @@ class HUD {
             const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
             const ss = String(elapsed % 60).padStart(2, '0');
             const timeText = `${mm}:${ss}`;
+
+            // manejar animación de reinicio: si el juego marcó un reinicio, arrancar animación
+            const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+            try {
+                if (this.game && this.game._timeJustReset) {
+                    this._resetAnimStart = now;
+                    try { this.game._timeJustReset = false; } catch (e) {}
+                }
+            } catch (e) {}
+
+            // calcular medidas base
             ctx.save();
             ctx.font = this.font;
             const timeMetrics = ctx.measureText(timeText);
@@ -71,12 +86,57 @@ class HUD {
             const tboxH = 24;
             const tboxX = Math.floor((cw - tboxW) / 2);
             const tboxY = 12;
-            ctx.fillStyle = this.bgColor;
-            roundRect(ctx, tboxX, tboxY, tboxW, tboxH, 8, true, false);
-            ctx.fillStyle = this.textColor;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(timeText, tboxX + tboxW / 2, tboxY + tboxH / 2);
+
+            // determinar si la animación está activa
+            let scale = 1;
+            if (this._resetAnimStart) {
+                const dt = now - this._resetAnimStart;
+                if (dt <= this._resetAnimDuration) {
+                    const p = Math.max(0, Math.min(1, dt / this._resetAnimDuration));
+                    // easing out effect (quadratic)
+                    const ease = 1 - (1 - p) * (1 - p);
+                    // pulso: empieza grande y vuelve a 1
+                    scale = 1 + this._resetAnimScale * (1 - ease);
+                } else {
+                    this._resetAnimStart = null;
+                }
+            }
+
+            // dibujar caja y texto con posible escala centrada
+            try {
+                const cx = Math.floor(tboxX + tboxW / 2);
+                const cy = Math.floor(tboxY + tboxH / 2);
+                if (scale !== 1) {
+                    ctx.save();
+                    ctx.translate(cx, cy);
+                    ctx.scale(scale, scale);
+                    ctx.translate(-cx, -cy);
+                    // fondo (ligeramente más brillante durante la animación)
+                    const animBg = this.bgColor;
+                    ctx.fillStyle = animBg;
+                    roundRect(ctx, tboxX, tboxY, tboxW, tboxH, 8, true, false);
+                    ctx.fillStyle = this.textColor;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(timeText, tboxX + tboxW / 2, tboxY + tboxH / 2);
+                    ctx.restore();
+                } else {
+                    ctx.fillStyle = this.bgColor;
+                    roundRect(ctx, tboxX, tboxY, tboxW, tboxH, 8, true, false);
+                    ctx.fillStyle = this.textColor;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(timeText, tboxX + tboxW / 2, tboxY + tboxH / 2);
+                }
+            } catch (e) {
+                // fallback: dibujar sin animación si algo falla
+                ctx.fillStyle = this.bgColor;
+                roundRect(ctx, tboxX, tboxY, tboxW, tboxH, 8, true, false);
+                ctx.fillStyle = this.textColor;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(timeText, tboxX + tboxW / 2, tboxY + tboxH / 2);
+            }
             ctx.restore();
 
             // --- mostrar mejor tiempo (highscore) para este nivel en esquina superior izquierda ---
