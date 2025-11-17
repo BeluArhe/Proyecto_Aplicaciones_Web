@@ -111,6 +111,48 @@ Recomendaciones para probar multijugador localmente:
 
 Si observes que el HUD no refleja cambios de vidas, revisa la consola y copia los logs; el HUD ahora también muestra el número de vidas junto a los corazones para facilitar la comprobación.
 
+## Diagrama de flujo
+
+El flujo principal del juego está disponible en formato Mermaid. Si tu visualizador de Markdown soporta Mermaid (por ejemplo GitHub o mermaid.live) verás el diagrama a continuación. También puedes consultar la versión completa en `docs/flowchart.md`.
+
+```mermaid
+flowchart TD
+  Start([Inicio]) --> Menu["Menú principal"]
+  Menu -->|Iniciar| StartGame["Iniciar juego / Elegir nivel"]
+  Menu -->|Seleccionar personaje| Character["Seleccionar personaje"]
+  Menu -->|Configurar| Settings["Configuraciones"]
+  Settings --> SettingsOptions["Contraste / Sonido / Controles P2 (si multijugador)"]
+
+  StartGame --> Init["GameEngine.init()\nGame constructor\nCargar assets\nCrear kitten(s) según multiplayer"]
+  Init --> Loop["Bucle principal\n(requestAnimationFrame)"]
+
+  subgraph GameLoop [Loop por frame]
+    Loop --> Input["Leer Input por jugador (P1 y P2)"]
+    Input --> Update["Game.update(deltaTime)"]
+    Update --> Entities["Actualizar entidades:\n- Kitten(s)\n- Trash\n- Hazards (Shark/Crab/Lighthouse)"]
+    Entities --> Collisions["Comprobar colisiones:\n- Trash vs bag(s)\n- Hazards vs kitten(s)"]
+    Collisions -->|Trash pickup| Pickup["Asignar a picker (P1/P2)\nEliminar trash\nActualizar contador"]
+    Collisions -->|Hazard hit| Damage["_damage(playerId, amount)\n- Restar vidasP1/vidasP2\n- Poner invulnerabilidad de actor\n- Marcar kitten.dead si vidas=0"]
+    Damage --> HUDUpdate["Actualizar HUD (vidas y contadores)"]
+    Pickup --> HUDUpdate
+    HUDUpdate --> CheckComplete["¿Objetivo alcanzado? (targetTrashCollected >= target)"]
+    CheckComplete -->|Sí| LevelComplete["Pausar juego\nMostrar overlay Nivel Completado\nActualizar highscores / unlockedLevels"]
+    CheckComplete -->|No| ContinueLoop["Continuar bucle"]
+    HUDUpdate --> CheckGameOver["¿Game Over?\n- Single: P1 vidas=0 -> GameOver\n- Multi: P1 vidas=0 && P2 vidas=0 -> GameOver"]
+    CheckGameOver -->|Sí| GameOver["Pausar juego\nMostrar overlay Game Over (mensaje según modo)\nReproducir audio triste"]
+    CheckGameOver -->|No| ContinueLoop
+    ContinueLoop --> Loop
+  end
+
+  LevelComplete --> MenuReturn["Volver al menú / Siguiente / Repetir"]
+  GameOver --> MenuReturn
+  MenuReturn --> Menu
+
+  classDef note fill:#fff3b0,stroke:#f7b500,color:#222;
+  SettingsOptions:::note
+  HUDUpdate:::note
+
+```
 
 ## Troubleshooting (problemas comunes)
 - Imágenes que no cargan o `getImageData` fallando por CORS: sirve el proyecto con un servidor local en lugar de abrir `index.html` directamente.
