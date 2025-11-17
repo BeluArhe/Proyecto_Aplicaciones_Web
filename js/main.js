@@ -385,14 +385,13 @@ document.addEventListener('DOMContentLoaded', () => {
     startBtn.addEventListener('click', () => startGame());
 
     levelsBtn.addEventListener('click', () => {
-        // Si existe el panel de niveles en esta página, mostrarlo; de lo contrario navegar
+        // Abrir siempre la página de niveles separada para mostrar la cuadrícula con candados
         try {
-            if (levelsPanel) {
-                levelsPanel.classList.remove('hidden');
-                return;
-            }
-        } catch (e) {}
-        window.location.href = 'levels.html';
+            window.location.href = 'levels.html';
+        } catch (e) {
+            // fallback suave
+            try { if (levelsPanel) levelsPanel.classList.remove('hidden'); } catch (err) {}
+        }
     });
 
     backBtn.addEventListener('click', () => {

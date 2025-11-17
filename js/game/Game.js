@@ -632,8 +632,10 @@ class Game {
             }
         }
 
-        // Nivel 3: comprobar tiburón si existe
+        // Nivel 3: comprobar tiburón si existe (muestra daño por impacto en vez de Game Over inmediato)
         if (this.level === 3 && this.shark) {
+            // ensure lives initialized
+            if (!this.lives) this.lives = 3;
             try {
                 this.shark.update(deltaTime, this.engine);
                 // comprobar colisión gato-tiburón
@@ -646,60 +648,12 @@ class Game {
                 const sy1 = sb.y;
                 const sx2 = sb.x + sb.w;
                 const sy2 = sb.y + sb.h;
-                const overlap = !(kx2 < sx1 || kx1 > sx2 || ky2 < sy1 || ky1 > sy2);
-                if (overlap) {
-                    // game over
-                    console.log('💀 El gatito fue atrapado por el tiburón');
-                    try { this.engine.state = 'PAUSED'; } catch (e) {}
-                    const overlay = document.getElementById('gameOverOverlay');
-                    if (overlay) {
-                        // show overlay and add crying image
-                        overlay.classList.remove('hidden');
-                        try {
-                            const panel = document.getElementById('gameOverPanel');
-                            if (panel) {
-                                let img = document.getElementById('cryingKittenImg');
-                                if (!img) {
-                                    img = document.createElement('img');
-                                    img.id = 'cryingKittenImg';
-                                    img.src = 'assets/gatito%20llorando.jpg';
-                                    img.alt = 'Gatito llorando';
-                                    img.style.width = '120px';
-                                    img.style.display = 'block';
-                                    img.style.margin = '6px auto';
-                                    panel.insertBefore(img, panel.firstChild);
-                                }
-                            }
-                        } catch (e) {}
-                        // pause theme and ensure happy audio stopped, then start sad audio looped (first 10s)
-                        try {
-                            try { if (this.happyAudio) { try { this.happyAudio.pause(); } catch (e) {} try { this.happyAudio.currentTime = 0; } catch (e) {} } } catch (e) {}
-                            if (this.themeAudio && !this.themeAudio.paused) {
-                                try { this.themeAudio.pause(); } catch (e) {}
-                            }
-                        } catch (e) {}
-                        try { this._stopHappyAudio && this._stopHappyAudio(); } catch (e) {}
-                        try { this._stopSadAudio(); } catch (e) {}
-                        try { this._startSadAudio(); } catch (e) {}
-                        const repeatBtn = document.getElementById('repeatAfterGameOverBtn');
-                        const returnBtn = document.getElementById('returnMenuFromGameOverBtn');
-                        const self = this;
-                        if (repeatBtn) repeatBtn.onclick = () => {
-                            try { self._stopSadAudio(); } catch (e) {}
-                            try { if (self.happyAudio) { try { self.happyAudio.pause(); } catch (e) {} try { self.happyAudio.currentTime = 0; } catch (e) {} } } catch (e) {}
-                            try { if (self._removeDancingElements) self._removeDancingElements(); } catch (e) {}
-                            try {
-                                if (typeof window.changeLevel === 'function') {
-                                    window.changeLevel(self.level);
-                                    return;
-                                }
-                            } catch (e) {}
-                            try { if (window.themeAudio && window.themeAudio.paused) { window.themeAudio.play().catch(() => {}); } } catch (e) {}
-                            window.location.href = window.location.pathname + '?level=' + self.level;
-                        };
-                        if (returnBtn) returnBtn.onclick = () => { try { self._stopSadAudio(); } catch (e) {} try { if (self.happyAudio) { try { self.happyAudio.pause(); } catch (e) {} try { self.happyAudio.currentTime = 0; } catch (e) {} } } catch (e) {} try { if (self._removeDancingElements) self._removeDancingElements(); } catch (e) {} window.location.href = window.location.pathname; };
-                    } else {
-                        setTimeout(() => alert('Game Over'), 50);
+                const overlapShark = !(kx2 < sx1 || kx1 > sx2 || ky2 < sy1 || ky1 > sy2);
+                if (overlapShark) {
+                    const now = this.elapsedTime || 0;
+                    if (now - (this._lastHitTime || 0) > 1.0) {
+                        this._lastHitTime = now;
+                        this._damage(1);
                     }
                 }
             } catch (e) { /* ignore */ }
