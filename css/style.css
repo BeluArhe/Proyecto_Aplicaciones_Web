@@ -133,6 +133,37 @@ body {
     box-shadow: 0 12px 0px 0px #FFC0CB; /* La sombra se mueve y se hace más grande */
 }
 
+/* Botón/etiqueta tipo menú para toggles (Multijugador, mute, etc.) */
+.menu-toggle-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin: 12px 10px;
+    padding: 12px 22px;
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 26px;
+    border: 5px solid #FFC0CB;
+    background: #FFB6C1;
+    color: #A52A2A;
+    transition: all 0.25s ease;
+    box-shadow: 0 8px 0px 0px #FFD700;
+}
+.menu-toggle-label:hover {
+    background: #FF88AA;
+    transform: translateY(-3px);
+    box-shadow: 0 12px 0px 0px #FFC0CB;
+}
+.menu-toggle-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    transform: translateY(1px);
+}
+.menu-toggle-text { /* ajusta el espaciado/jerarquía del texto */
+    line-height: 1;
+}
+
 /* Panel o contenedor de opciones adicionales (Selector de niveles) */
 #levelsPanel {
     margin-top: 35px;
