@@ -188,6 +188,8 @@ class Game {
         this.targetTrashCollected = 0;
         // tiempo transcurrido en segundos (se acumula en update)
         this.elapsedTime = 0;
+        // vidas por defecto: 3 al iniciar cada nivel
+        this.lives = 3;
         // initial lives are set per-level above (e.g. level 4 sets this.lives = 3).
         // only set a safe last-hit time so cooldown checks behave correctly
         this._lastHitTime = -999;

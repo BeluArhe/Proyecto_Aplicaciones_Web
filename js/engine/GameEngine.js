@@ -35,8 +35,8 @@ class GameEngine {
 
         // Evitar que el primer deltaTime sea enorme al iniciar (causa que elapsedTime se infle)
         try { this.lastTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : 0; } catch (e) { this.lastTime = 0; }
-        // Iniciar game loop
-        this.gameLoop();
+        // Iniciar game loop mediante requestAnimationFrame para recibir timestamp inicial correcto
+        try { this.rafId = requestAnimationFrame((time) => this.gameLoop(time)); } catch (e) { this.gameLoop(); }
     }
 
     gameLoop(currentTime = 0) {
