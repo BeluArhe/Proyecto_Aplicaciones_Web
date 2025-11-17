@@ -31,9 +31,21 @@ class Kitten {
         this.spriteScale = 2.0;
         this.drawWidth = this.width * this.spriteScale;
         this.drawHeight = this.height * this.spriteScale;
-        this.drawOffsetX = 0;
-        this.drawOffsetY = 0;
-        // padding alrededor del recorte (px) para dejar algo de espacio visual
+            // sprite
+            this.sprite = new Image();
+            this.sprite.onload = () => this._onSpriteLoad();
+            this.sprite.onerror = () => this._onSpriteError();
+            // choose sprite from localStorage if present
+            try {
+                const sel = localStorage.getItem('selectedKitten');
+                if (sel && sel !== 'default') {
+                    this.sprite.src = sel;
+                } else {
+                    this.sprite.src = 'assets/b0b37662f658b5881f689f7ed6672d2a.png';
+                }
+            } catch (e) {
+                this.sprite.src = 'assets/b0b37662f658b5881f689f7ed6672d2a.png';
+            }
         this.spritePadding = 6;
         // inclinación máxima en radianes cuando se mueve
         this.maxTilt = 0.18;
@@ -122,7 +134,17 @@ class Kitten {
             }
         };
         // iniciar intentando el archivo solicitado (hash filename). Fallbacks: cat/kitten/remoto
-        this.sprite.src = 'assets/b0b37662f658b5881f689f7ed6672d2a.png';
+        // Si el usuario seleccionó un personaje, usar esa ruta desde localStorage
+        try {
+            const saved = localStorage.getItem('selectedKitten');
+            if (saved && saved !== 'default') {
+                this.sprite.src = saved;
+            } else {
+                this.sprite.src = 'assets/b0b37662f658b5881f689f7ed6672d2a.png';
+            }
+        } catch (e) {
+            this.sprite.src = 'assets/b0b37662f658b5881f689f7ed6672d2a.png';
+        }
     }
 
     update(deltaTime) {

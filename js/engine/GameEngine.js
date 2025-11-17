@@ -6,6 +6,7 @@ class GameEngine {
         this.accumulator = 0;
         this.timestep = 1000 / 60; // 60 FPS
         this.rafId = null;
+        this.fps = 0; // smoothed frames-per-second value
         this.waveTime = 0; // tiempo para animar olas
         // parámetros ajustables de las olas
         this.waveSpeed = 1.4; // controla el desplazamiento de la fase de las olas
@@ -37,6 +38,13 @@ class GameEngine {
     gameLoop(currentTime = 0) {
         const deltaTime = currentTime - this.lastTime;
         this.lastTime = currentTime;
+
+        // Calcular FPS (suavizado). Protegemos contra deltas inesperados.
+        if (deltaTime > 0 && deltaTime < 1000) {
+            const inst = 1000 / deltaTime;
+            const alpha = 0.08; // factor de suavizado (EMA)
+            this.fps = this.fps ? (this.fps * (1 - alpha) + inst * alpha) : inst;
+        }
         // actualizar tiempo para animación de olas (en segundos)
         this.waveTime += (deltaTime / 1000) * (this.waveTimeScale || 1);
 
@@ -72,8 +80,8 @@ class GameEngine {
             this.hud.render(this.ctx);
         }
         
-        // Dibujar información de debug (desactivado)
-        // this.drawDebugInfo();
+        // Dibujar información de debug (FPS, posición)
+        this.drawDebugInfo();
     }
 
     drawBackground() {
@@ -122,12 +130,22 @@ class GameEngine {
     }
 
     drawDebugInfo() {
-        this.ctx.fillStyle = 'white';
-        this.ctx.font = '14px Arial';
-        this.ctx.fillText(`Posición: (${Math.round(this.game.kitten.x)}, ${Math.round(this.game.kitten.y)})`, 10, 20);
-        this.ctx.fillText(`Velocidad: ${this.game.kitten.speed}`, 10, 40);
-        this.ctx.fillText(`Estado: ${this.state}`, 10, 60);
-        this.ctx.fillText(`Controles: WASD para mover`, 10, 80);
+        // Mostrar solo FPS en la esquina superior izquierda (fondo pequeño para legibilidad)
+        const fpsText = this.fps ? `${Math.round(this.fps)} FPS` : 'FPS: --';
+        this.ctx.font = 'bold 14px Arial';
+        const padding = 8;
+        const textMetrics = this.ctx.measureText(fpsText);
+        const boxW = Math.ceil(textMetrics.width) + padding * 2;
+        const boxH = 26; // altura compacta
+
+        this.ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        this.ctx.fillRect(8, 8, boxW, boxH);
+
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText(fpsText, 8 + padding, 8 + boxH / 2);
+
+        // (Previously drew hearts here; removed per user request.)
     }
 
     getWaterSurface(x) {

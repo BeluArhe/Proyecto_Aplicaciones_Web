@@ -13,7 +13,13 @@
     <div id="menu" class="menu-overlay">
       <h1>Beach Kitten Cleanup</h1>
       <button id="startBtn">Iniciar juego</button>
+      <div style="margin-top:8px;">
+        <button id="chooseCharacterBtn" style="padding:10px 14px; font-size:16px;">Seleccionar personaje</button>
+      </div>
       <button id="levelsBtn">Niveles</button>
+      <div style="margin-top:8px;">
+        <button id="settingsBtn" style="padding:10px 14px; font-size:16px;">Configuraciones</button>
+      </div>
       <button id="exitBtn">Salir</button>
 
       <div id="levelsPanel" class="hidden">
@@ -27,6 +33,8 @@
         <button id="startWithLevelBtn">Iniciar</button>
         <button id="backBtn">Volver</button>
       </div>
+      
+      
     </div>
 
     </div>
@@ -38,6 +46,58 @@
         <button id="resumeBtn">Continuar</button>
         <button id="returnMenuBtn">Volver al menú principal</button>
         <button id="exitFromPauseBtn">Salir</button>
+        <div style="margin-top:12px;">
+          <button id="settingsBtnPause" style="padding:8px 12px; font-size:14px;">Configuraciones</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Overlay de Selección de Personaje -->
+    <div id="characterOverlay" class="menu-overlay hidden">
+      <div id="characterPanel" style="text-align:center; padding:18px; background:white; border-radius:12px; min-width:360px;">
+        <h2 style="margin:0 0 12px 0;">Seleccionar personaje</h2>
+        <div id="charGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
+          <div class="char-card" data-src="assets/Gatito.png" tabindex="0">
+            <img src="assets/Gatito.png" alt="Gatito" style="width:100%; height:90px; object-fit:contain;" />
+            <div style="padding:6px 0; font-weight:700;">Gatito</div>
+          </div>
+          <div class="char-card" data-src="assets/Gatito%202.png" tabindex="0">
+            <img src="assets/Gatito%202.png" alt="Gatito 2" style="width:100%; height:90px; object-fit:contain;" />
+            <div style="padding:6px 0; font-weight:700;">Gatito 2</div>
+          </div>
+          <div class="char-card" data-src="assets/Gatito%203.png" tabindex="0">
+            <img src="assets/Gatito%203.png" alt="Gatito 3" style="width:100%; height:90px; object-fit:contain;" />
+            <div style="padding:6px 0; font-weight:700;">Gatito 3</div>
+          </div>
+          <div class="char-card" data-src="assets/Gatito%20Banana.png" tabindex="0">
+            <img src="assets/Gatito%20Banana.png" alt="Gato Banana" style="width:100%; height:90px; object-fit:contain;" />
+            <div style="padding:6px 0; font-weight:700;">Gatito Banana</div>
+          </div>
+        </div>
+        <div style="margin-top:14px; display:flex; gap:10px; justify-content:center;">
+          <button id="closeCharBtn" style="padding:6px 10px;">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overlay de Configuraciones (contraste, etc.) -->
+    <div id="settingsOverlay" class="menu-overlay hidden">
+      <div id="settingsPanel" style="text-align:center; padding:20px; background:white; border-radius:12px; min-width:320px;">
+        <h2 style="margin:0 0 10px 0;">Configuraciones</h2>
+        <div style="margin-top:12px; display:flex; gap:8px; align-items:center; justify-content:center;">
+          <label style="font-weight:700;">Contraste:</label>
+          <input id="contrastRangeSettings" class="contrast-range" type="range" min="0" max="100" step="1" value="100" />
+          <span id="contrastValue" style="font-weight:700;">100%</span>
+        </div>
+        <div style="margin-top:12px; display:flex; gap:8px; align-items:center; justify-content:center;">
+          <label style="font-weight:700;">Silenciar música:</label>
+          <input id="muteCheckbox" type="checkbox" />
+        </div>
+        <!-- character select moved to its own overlay -->
+        <div style="margin-top:16px; display:flex; gap:10px; justify-content:center;">
+          <button id="resetContrastBtnSettings" style="padding:6px 10px;">Reset</button>
+          <button id="closeSettingsBtn" style="padding:6px 10px;">Cerrar</button>
+        </div>
       </div>
     </div>
 

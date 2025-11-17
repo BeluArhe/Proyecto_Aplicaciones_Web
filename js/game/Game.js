@@ -3,6 +3,21 @@ class Game {
         this.engine = engine;
         this.level = parseInt(level) || 1;
         this.kitten = new Kitten(this);
+        // Theme audio (never gonna meow you up) - reuse global audio if present so it continues across levels
+        try {
+            if (window.themeAudio) {
+                this.themeAudio = window.themeAudio;
+            } else {
+                this.themeAudio = new Audio('assets/Never%20gonna%20Meow%20you%20up.mp3');
+                this.themeAudio.loop = true;
+                this.themeAudio.volume = 0.6;
+                try { this.themeAudio.muted = !!window.isGameMuted; } catch (e) {}
+                // store globally so subsequent levels reuse the same audio element
+                window.themeAudio = this.themeAudio;
+            }
+        } catch (e) {
+            this.themeAudio = null;
+        }
         // objetivos por nivel
         this.targetTrashCount = 3;
 
@@ -178,6 +193,182 @@ class Game {
         this._lastHitTime = -999;
 
         console.log('🎮 Juego inicializado — nivel', this.level);
+        // start theme if appropriate (not the final level). Reuse global audio so it continues across levels.
+        try {
+            if (this.themeAudio && this.level < 5) {
+                // only attempt to play if not already playing
+                if (this.themeAudio.paused) {
+                    const p = this.themeAudio.play();
+                    if (p && typeof p.then === 'function') p.catch(() => {});
+                }
+            }
+        } catch (e) {}
+    }
+
+    // Sad meow audio handling for Game Over (play only first 10 seconds in loop)
+    _initSadAudio() {
+        try {
+            if (!this.sadAudio) {
+                this.sadAudio = new Audio('assets/miau%20miau%20triste.mp3');
+                this.sadAudio.volume = 0.95;
+                this.sadAudio.preload = 'auto';
+                try { this.sadAudio.muted = !!window.isGameMuted; } catch (e) {}
+            }
+        } catch (e) {
+            this.sadAudio = null;
+        }
+    }
+
+    // Create a dancing kitten element without green background and insert into the final-level panel
+    _createDancingKittenElement(panel) {
+        try {
+            // get selected kitten src from localStorage or fallback to default asset
+            let src = null;
+            try { src = localStorage.getItem('selectedKitten'); } catch (e) { src = null; }
+            if (!src || src === 'default') src = 'assets/Gatito.png';
+
+            const makeTransparentGreen = (imgSrc, tolerance = 80) => new Promise((resolve) => {
+                try {
+                    const img = new Image();
+                    img.crossOrigin = '';
+                    img.onload = () => {
+                        try {
+                            const w = img.naturalWidth || img.width;
+                            const h = img.naturalHeight || img.height;
+                            if (!w || !h) return resolve(imgSrc);
+                            const c = document.createElement('canvas');
+                            c.width = w; c.height = h;
+                            const ctx = c.getContext('2d');
+                            ctx.drawImage(img, 0, 0, w, h);
+                            try {
+                                const id = ctx.getImageData(0, 0, w, h);
+                                const d = id.data;
+                                // remove strong green pixels
+                                for (let i = 0; i < d.length; i += 4) {
+                                    const r = d[i], g = d[i+1], b = d[i+2];
+                                    // detect green-screen like pixels: green is dominant and above threshold
+                                    if (g > tolerance && g - r > 30 && g - b > 30) {
+                                        d[i+3] = 0;
+                                    }
+                                }
+                                ctx.putImageData(id, 0, 0);
+                                try {
+                                    const url = c.toDataURL('image/png');
+                                    return resolve(url);
+                                } catch (e) {
+                                    return resolve(imgSrc);
+                                }
+                            } catch (e) {
+                                // CORS or other error
+                                return resolve(imgSrc);
+                            }
+                        } catch (e) { return resolve(imgSrc); }
+                    };
+                    img.onerror = () => resolve(imgSrc);
+                    img.src = imgSrc;
+                    // timeout fallback
+                    setTimeout(() => resolve(imgSrc), 2000);
+                } catch (e) { resolve(src); }
+            });
+
+            // create container
+            try {
+                let dance = document.getElementById('dancingKittenContainer');
+                if (dance) {
+                    dance.remove();
+                }
+                const container = document.createElement('div');
+                container.id = 'dancingKittenContainer';
+                container.style.width = '160px';
+                container.style.height = '160px';
+                container.style.margin = '8px auto';
+                container.style.display = 'flex';
+                container.style.alignItems = 'center';
+                container.style.justifyContent = 'center';
+                container.style.background = 'transparent';
+                container.style.pointerEvents = 'none';
+
+                const imgEl = document.createElement('img');
+                imgEl.alt = 'Gatito bailando';
+                imgEl.style.width = '140px';
+                imgEl.style.height = 'auto';
+                imgEl.style.display = 'block';
+                imgEl.style.filter = 'drop-shadow(0 4px 6px rgba(0,0,0,0.25))';
+                imgEl.id = 'dancingKittenImg';
+
+                container.appendChild(imgEl);
+
+                // ensure keyframes for dance exist
+                try {
+                    if (!document.getElementById('kitten-dance-keyframes')) {
+                        const style = document.createElement('style');
+                        style.id = 'kitten-dance-keyframes';
+                        style.textContent = `@keyframes kitten-dance { 0% { transform: translateY(0) rotate(-3deg); } 25% { transform: translateY(-6px) rotate(3deg); } 50% { transform: translateY(0) rotate(-3deg); } 75% { transform: translateY(-6px) rotate(3deg); } 100% { transform: translateY(0) rotate(-3deg); } } #dancingKittenImg { animation: kitten-dance 800ms infinite ease-in-out; transform-origin: 50% 70%; }`;
+                        document.head.appendChild(style);
+                    }
+                } catch (e) {}
+
+                // process image to remove green background then set src
+                makeTransparentGreen(src, 100).then((url) => {
+                    try { imgEl.src = url || src; } catch (e) { imgEl.src = src; }
+                }).catch(() => { imgEl.src = src; });
+
+                // insert at top of panel
+                try { panel.insertBefore(container, panel.firstChild); } catch (e) {}
+                return container;
+            } catch (e) { return null; }
+        } catch (e) { return null; }
+    }
+
+    // Remove any dancing video or container previously inserted
+    _removeDancingElements() {
+        try {
+            const vid = document.getElementById('dancingKittenVideo');
+            if (vid) {
+                try { vid.pause(); } catch (e) {}
+                try { vid.remove(); } catch (e) {}
+            }
+        } catch (e) {}
+        try {
+            const cont = document.getElementById('dancingKittenContainer');
+            if (cont) {
+                try { cont.remove(); } catch (e) {}
+            }
+        } catch (e) {}
+    }
+
+    _startSadAudio() {
+        try {
+            this._initSadAudio();
+            if (!this.sadAudio) return;
+            // ensure start at 0
+            try { this.sadAudio.currentTime = 0; } catch (e) {}
+            // timeupdate handler to loop the first 10s
+            this._sadHandler = () => {
+                try {
+                    if (this.sadAudio.currentTime >= 10) {
+                        this.sadAudio.currentTime = 0;
+                        this.sadAudio.play().catch(() => {});
+                    }
+                } catch (e) {}
+            };
+            this.sadAudio.addEventListener('timeupdate', this._sadHandler);
+            const p = this.sadAudio.play(); if (p && typeof p.then === 'function') p.catch(() => {});
+        } catch (e) {
+            // ignore
+        }
+    }
+
+    _stopSadAudio() {
+        try {
+            if (!this.sadAudio) return;
+            if (this._sadHandler) {
+                try { this.sadAudio.removeEventListener('timeupdate', this._sadHandler); } catch (e) {}
+                this._sadHandler = null;
+            }
+            try { this.sadAudio.pause(); } catch (e) {}
+            try { this.sadAudio.currentTime = 0; } catch (e) {}
+        } catch (e) {}
     }
 
     update(deltaTime) {
@@ -222,6 +413,28 @@ class Game {
                         // comprobar objetivo
                         if (this.targetTrashCollected >= this.targetTrashCount) {
                             console.log('🎉 Nivel completado');
+                            // For non-final levels, keep the theme playing; only stop/reset if this is the final level
+                            try {
+                                if (this.level === 5) {
+                                    if (this.themeAudio) { this.themeAudio.pause(); this.themeAudio.currentTime = 0; }
+                                }
+                            } catch (e) {}
+                            // Update highscores: store best (fastest) time per level in localStorage
+                            try {
+                                const elapsedSec = Math.floor(this.elapsedTime || 0);
+                                const key = 'highscores';
+                                let obj = {};
+                                try { const raw = localStorage.getItem(key); obj = raw ? JSON.parse(raw) : {}; } catch (e) { obj = {}; }
+                                const prev = obj[String(this.level)];
+                                if (!prev || elapsedSec < Number(prev)) {
+                                    obj[String(this.level)] = elapsedSec;
+                                    try { localStorage.setItem(key, JSON.stringify(obj)); } catch (e) {}
+                                    // mark new record for UI
+                                    this._newRecord = true;
+                                } else {
+                                    this._newRecord = false;
+                                }
+                            } catch (e) { this._newRecord = false; }
                             try { this.engine.state = 'PAUSED'; } catch (e) {}
                             // Mostrar overlay personalizado con opciones
                             try {
@@ -235,12 +448,151 @@ class Game {
                                         const ss = String(elapsed % 60).padStart(2, '0');
                                         timeEl.textContent = 'Tiempo: ' + mm + ':' + ss;
                                     }
-                                    overlay.classList.remove('hidden');
-                                    // asignar handlers a botones
+                                    // Si es el nivel final (5), mostrar un panel especial con efectos
                                     const repeatBtn = document.getElementById('repeatLevelBtn');
                                     const nextBtn = document.getElementById('nextLevelBtn');
                                     const returnBtn = document.getElementById('returnMenuFromCompleteBtn');
-                                    if (repeatBtn) repeatBtn.onclick = () => { window.location.href = window.location.pathname + '?level=' + this.level; };
+                                    if (this.level === 5) {
+                                        // Mensaje especial
+                                        const titleEl = document.getElementById('levelCompleteTitle');
+                                        if (titleEl) titleEl.textContent = '¡Finalizaste el juego! Felicitaciones';
+                                        // Ocultar botón de siguiente nivel (no hay siguiente)
+                                        if (nextBtn) nextBtn.style.display = 'none';
+                                        if (repeatBtn) repeatBtn.textContent = 'Repetir juego';
+
+                                        // Estilizar panel con clase celebratoria
+                                        const panel = document.getElementById('levelCompletePanel');
+                                        if (panel) panel.classList.add('level-complete-final');
+
+                                        // Añadir confetti animado dentro del overlay
+                                        let confetti = document.getElementById('confettiContainer');
+                                        if (!confetti) {
+                                            confetti = document.createElement('div');
+                                            confetti.id = 'confettiContainer';
+                                            confetti.className = 'confetti-container';
+                                            overlay.appendChild(confetti);
+                                            const colors = ['#ff0a54','#ff9770','#ffd60a','#8affc1','#7ae0ff','#b28dff'];
+                                            for (let p = 0; p < 40; p++) {
+                                                const piece = document.createElement('div');
+                                                piece.className = 'confetti-piece';
+                                                piece.style.left = (Math.random() * 100) + '%';
+                                                piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+                                                const delay = (Math.random() * 0.8).toFixed(2);
+                                                const dur = (1.6 + Math.random() * 1.6).toFixed(2);
+                                                piece.style.animationDelay = delay + 's';
+                                                piece.style.animationDuration = dur + 's';
+                                                confetti.appendChild(piece);
+                                            }
+                                            // limpiar confetti después de 6s
+                                            setTimeout(() => { try { confetti.remove(); } catch (e) {} }, 6000);
+                                            // Reproducir sonido de celebración (si existe)
+                                            try {
+                                                const audio = new Audio('assets/audio/level-complete.mp3');
+                                                audio.volume = 0.85;
+                                                const playPromise = audio.play();
+                                                if (playPromise && typeof playPromise.then === 'function') {
+                                                    playPromise.catch((err) => { console.warn('Reproducción de audio bloqueada o falló:', err); });
+                                                }
+                                            } catch (e) {
+                                                console.warn('No se pudo reproducir audio de celebración', e);
+                                            }
+                                            // Start looping happy audio during final confetti
+                                            try {
+                                                if (!this.happyAudio) {
+                                                    this.happyAudio = new Audio('assets/happy%20happy%20happy%20ganar.mp3');
+                                                    this.happyAudio.loop = true;
+                                                    this.happyAudio.volume = 0.9;
+                                                    try { this.happyAudio.muted = !!window.isGameMuted; } catch (e) {}
+                                                }
+                                                // ensure sad audio not playing
+                                                try { this._stopSadAudio(); } catch (e) {}
+                                                const pp = this.happyAudio.play(); if (pp && typeof pp.then === 'function') pp.catch(() => {});
+                                            } catch (e) {}
+                                            // try MP4 video first, otherwise fall back to transparent image
+                                            try {
+                                                const panel = document.getElementById('levelCompletePanel');
+                                                if (panel) {
+                                                    try {
+                                                        // remove any existing dancing elements first
+                                                        try { this._removeDancingElements(); } catch (e) {}
+                                                        const video = document.createElement('video');
+                                                        video.id = 'dancingKittenVideo';
+                                                        video.src = 'assets/gatito_bailando.mp4';
+                                                        video.loop = true;
+                                                        video.autoplay = true;
+                                                        video.muted = true; // rely on happy audio for sound
+                                                        video.playsInline = true;
+                                                        video.style.width = '140px';
+                                                        video.style.height = 'auto';
+                                                        video.style.display = 'block';
+                                                        video.style.margin = '8px auto';
+                                                        video.style.background = 'transparent';
+                                                        video.style.pointerEvents = 'none';
+                                                        let handled = false;
+                                                        video.addEventListener('loadedmetadata', () => {
+                                                            try { const p = video.play(); if (p && typeof p.then === 'function') p.catch(() => {}); } catch (e) {}
+                                                            handled = true;
+                                                        });
+                                                        video.addEventListener('error', () => {
+                                                            try { video.remove(); } catch (e) {}
+                                                            if (!handled) {
+                                                                try { this._createDancingKittenElement(panel); } catch (e) {}
+                                                            }
+                                                        });
+                                                        try { panel.insertBefore(video, panel.firstChild); } catch (e) { try { video.remove(); } catch (e) {} }
+                                                        // fallback to image if video not loaded after timeout
+                                                        setTimeout(() => {
+                                                            try {
+                                                                const v = document.getElementById('dancingKittenVideo');
+                                                                if (v && v.readyState === 0) {
+                                                                    try { v.remove(); } catch (e) {}
+                                                                    try { this._createDancingKittenElement(panel); } catch (e) {}
+                                                                }
+                                                            } catch (e) {}
+                                                        }, 1800);
+                                                    } catch (e) {
+                                                        try { this._createDancingKittenElement(panel); } catch (e) {}
+                                                    }
+                                                }
+                                            } catch (e) {}
+                                        }
+                                    }
+                                    overlay.classList.remove('hidden');
+                                    // show new-record message if applicable
+                                    try {
+                                        const recElId = 'levelCompleteRecord';
+                                        let recEl = document.getElementById(recElId);
+                                        if (!recEl) {
+                                            recEl = document.createElement('div');
+                                            recEl.id = recElId;
+                                            recEl.style.marginTop = '8px';
+                                            recEl.style.fontWeight = '700';
+                                            recEl.style.color = '#1b9c00';
+                                            const panel = document.getElementById('levelCompletePanel');
+                                            if (panel) panel.insertBefore(recEl, panel.querySelector('#levelCompleteTime') ? panel.querySelector('#levelCompleteTime').nextSibling : panel.firstChild);
+                                        }
+                                        if (this._newRecord) {
+                                            recEl.textContent = '¡Nuevo récord!';
+                                        } else {
+                                            recEl.textContent = '';
+                                        }
+                                    } catch (e) {}
+                                    // asignar handlers a botones
+                                    if (repeatBtn) repeatBtn.onclick = () => {
+                                        try { if (this.happyAudio) { try { this.happyAudio.pause(); } catch (e) {} try { this.happyAudio.currentTime = 0; } catch (e) {} } } catch (e) {}
+                                        try { this._removeDancingElements(); } catch (e) {}
+                                        try {
+                                            // If available, change level in-place to preserve global theme audio
+                                            if (typeof window.changeLevel === 'function') {
+                                                try { this.engine && (this.engine.state = 'STOPPED'); } catch (e) {}
+                                                window.changeLevel(this.level);
+                                                return;
+                                            }
+                                        } catch (e) {}
+                                        // Fallback: attempt to ensure themeAudio keeps playing (or will be restarted)
+                                        try { if (window.themeAudio && window.themeAudio.paused) { window.themeAudio.play().catch(() => {}); } } catch (e) {}
+                                        window.location.href = window.location.pathname + '?level=' + this.level;
+                                    };
                                     if (nextBtn) nextBtn.onclick = () => {
                                         try {
                                             const key = 'unlockedLevels';
@@ -251,9 +603,21 @@ class Game {
                                         } catch (e) {
                                             console.warn('No se pudo actualizar unlockedLevels en localStorage', e);
                                         }
-                                        window.location.href = window.location.pathname + '?level=' + (this.level + 1);
+                                        try {
+                                            if (typeof window.changeLevel === 'function') {
+                                                window.changeLevel(this.level + 1);
+                                            } else {
+                                                window.location.href = window.location.pathname + '?level=' + (this.level + 1);
+                                            }
+                                        } catch (e) {
+                                            window.location.href = window.location.pathname + '?level=' + (this.level + 1);
+                                        }
                                     };
-                                    if (returnBtn) returnBtn.onclick = () => { window.location.href = window.location.pathname; };
+                                    if (returnBtn) returnBtn.onclick = () => {
+                                        try { if (this.happyAudio) { try { this.happyAudio.pause(); } catch (e) {} try { this.happyAudio.currentTime = 0; } catch (e) {} } } catch (e) {}
+                                        try { this._removeDancingElements(); } catch (e) {}
+                                        window.location.href = window.location.pathname;
+                                    };
                                 } else {
                                     setTimeout(() => alert('¡Nivel completado! Has recogido ' + this.targetTrashCollected + ' basuras.'), 50);
                                 }
@@ -287,11 +651,51 @@ class Game {
                     try { this.engine.state = 'PAUSED'; } catch (e) {}
                     const overlay = document.getElementById('gameOverOverlay');
                     if (overlay) {
+                        // show overlay and add crying image
                         overlay.classList.remove('hidden');
+                        try {
+                            const panel = document.getElementById('gameOverPanel');
+                            if (panel) {
+                                let img = document.getElementById('cryingKittenImg');
+                                if (!img) {
+                                    img = document.createElement('img');
+                                    img.id = 'cryingKittenImg';
+                                    img.src = 'assets/gatito%20llorando.jpg';
+                                    img.alt = 'Gatito llorando';
+                                    img.style.width = '120px';
+                                    img.style.display = 'block';
+                                    img.style.margin = '6px auto';
+                                    panel.insertBefore(img, panel.firstChild);
+                                }
+                            }
+                        } catch (e) {}
+                        // pause theme and ensure happy audio stopped, then start sad audio looped (first 10s)
+                        try {
+                            try { if (this.happyAudio) { try { this.happyAudio.pause(); } catch (e) {} try { this.happyAudio.currentTime = 0; } catch (e) {} } } catch (e) {}
+                            if (this.themeAudio && !this.themeAudio.paused) {
+                                try { this.themeAudio.pause(); } catch (e) {}
+                            }
+                        } catch (e) {}
+                        try { this._stopHappyAudio && this._stopHappyAudio(); } catch (e) {}
+                        try { this._stopSadAudio(); } catch (e) {}
+                        try { this._startSadAudio(); } catch (e) {}
                         const repeatBtn = document.getElementById('repeatAfterGameOverBtn');
                         const returnBtn = document.getElementById('returnMenuFromGameOverBtn');
-                        if (repeatBtn) repeatBtn.onclick = () => { window.location.href = window.location.pathname + '?level=' + this.level; };
-                        if (returnBtn) returnBtn.onclick = () => { window.location.href = window.location.pathname; };
+                        const self = this;
+                        if (repeatBtn) repeatBtn.onclick = () => {
+                            try { self._stopSadAudio(); } catch (e) {}
+                            try { if (self.happyAudio) { try { self.happyAudio.pause(); } catch (e) {} try { self.happyAudio.currentTime = 0; } catch (e) {} } } catch (e) {}
+                            try { if (self._removeDancingElements) self._removeDancingElements(); } catch (e) {}
+                            try {
+                                if (typeof window.changeLevel === 'function') {
+                                    window.changeLevel(self.level);
+                                    return;
+                                }
+                            } catch (e) {}
+                            try { if (window.themeAudio && window.themeAudio.paused) { window.themeAudio.play().catch(() => {}); } } catch (e) {}
+                            window.location.href = window.location.pathname + '?level=' + self.level;
+                        };
+                        if (returnBtn) returnBtn.onclick = () => { try { self._stopSadAudio(); } catch (e) {} try { if (self.happyAudio) { try { self.happyAudio.pause(); } catch (e) {} try { self.happyAudio.currentTime = 0; } catch (e) {} } } catch (e) {} try { if (self._removeDancingElements) self._removeDancingElements(); } catch (e) {} window.location.href = window.location.pathname; };
                     } else {
                         setTimeout(() => alert('Game Over'), 50);
                     }
@@ -443,10 +847,38 @@ class Game {
             const overlay = document.getElementById('gameOverOverlay');
             if (overlay) {
                 overlay.classList.remove('hidden');
+                try {
+                    const panel = document.getElementById('gameOverPanel');
+                    if (panel) {
+                        let img = document.getElementById('cryingKittenImg');
+                        if (!img) {
+                            img = document.createElement('img');
+                            img.id = 'cryingKittenImg';
+                            img.src = 'assets/gatito%20llorando.jpg';
+                            img.alt = 'Gatito llorando';
+                            img.style.width = '120px';
+                            img.style.display = 'block';
+                            img.style.margin = '6px auto';
+                            panel.insertBefore(img, panel.firstChild);
+                        }
+                    }
+                } catch (e) {}
+                try { this._startSadAudio(); } catch (e) {}
                 const repeatBtn = document.getElementById('repeatAfterGameOverBtn');
                 const returnBtn = document.getElementById('returnMenuFromGameOverBtn');
-                if (repeatBtn) repeatBtn.onclick = () => { window.location.href = window.location.pathname + '?level=' + this.level; };
-                if (returnBtn) returnBtn.onclick = () => { window.location.href = window.location.pathname; };
+                const self = this;
+                if (repeatBtn) repeatBtn.onclick = () => {
+                    try { self._stopSadAudio(); } catch (e) {}
+                    try {
+                        if (typeof window.changeLevel === 'function') {
+                            window.changeLevel(self.level);
+                            return;
+                        }
+                    } catch (e) {}
+                    try { if (window.themeAudio && window.themeAudio.paused) { window.themeAudio.play().catch(() => {}); } } catch (e) {}
+                    window.location.href = window.location.pathname + '?level=' + self.level;
+                };
+                if (returnBtn) returnBtn.onclick = () => { try { self._stopSadAudio(); } catch (e) {} window.location.href = window.location.pathname; };
             } else {
                 setTimeout(() => alert('Game Over'), 50);
             }
