@@ -58,6 +58,27 @@ class HUD {
                 roundRect(ctx, progressX + 1, progressY + 1, Math.max(2, Math.floor((progressW - 2) * fraction)), progressH - 2, 6, true, false);
             } catch (e) {}
 
+            // --- mostrar vidas en esquina superior izquierda ---
+            try {
+                const lives = (this.game && typeof this.game.lives === 'number') ? Math.max(0, Math.floor(this.game.lives)) : 3;
+                const heart = '❤';
+                const livesText = 'Vidas: ' + (heart.repeat(lives));
+                ctx.save();
+                ctx.font = '16px Arial';
+                const lm = ctx.measureText(livesText);
+                const lw = lm.width + pad * 2;
+                const lh = 22;
+                const lx = 12;
+                const ly = 12;
+                ctx.fillStyle = 'rgba(0,0,0,0.45)';
+                roundRect(ctx, lx, ly, lw, lh, 6, true, false);
+                ctx.fillStyle = '#ff4d4d';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(livesText, lx + pad, ly + lh / 2);
+                ctx.restore();
+            } catch (e) {}
+
             // --- dibujar cronómetro en la parte superior central ---
             const elapsed = Math.floor((this.game.elapsedTime || 0));
             const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
