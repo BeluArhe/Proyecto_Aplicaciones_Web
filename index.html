@@ -16,6 +16,9 @@
       <div style="margin-top:8px;">
         <button id="chooseCharacterBtn" style="padding:10px 14px; font-size:16px;">Seleccionar personaje</button>
       </div>
+      <div style="margin-top:8px; display:flex; gap:8px; align-items:center; justify-content:center;">
+        <label style="font-weight:700; display:flex; gap:8px; align-items:center;"><input id="multiplayerCheckbox" type="checkbox" /> Multijugador</label>
+      </div>
       <button id="levelsBtn">Niveles</button>
       <div style="margin-top:8px;">
         <button id="howToBtn" style="padding:10px 14px; font-size:16px;">¿Cómo jugar?</button>
@@ -46,17 +49,24 @@
     <div id="howToOverlay" class="menu-overlay hidden">
       <div id="howToPanel" style="text-align:left; padding:20px; background:white; border-radius:12px; min-width:360px; max-width:640px;">
         <h2 style="margin:0 0 8px 0; text-align:center;">¿Cómo jugar?</h2>
-        <div style="font-size:15px; line-height:1.4;">
+        <div style="font-size:15px; line-height:1.45; text-align:left;">
           <p><strong>Objetivo:</strong> Recoger la cantidad de basuras indicada en cada nivel antes de quedarte sin vidas.</p>
+          <p><strong>Modos de juego:</strong></p>
+          <ul>
+            <li><strong>Un jugador:</strong> Controlas al gatito principal (Jugador 1). En este modo solo verás un contador de basura y el indicador de vidas del Jugador 1.</li>
+            <li><strong>Multijugador local:</strong> Marca <em>Multijugador</em> en el menú antes de iniciar. Aparecerá un segundo gatito (Jugador 2) que te ayudará a recoger basura y ambos tienen vidas independientes.</li>
+          </ul>
           <p><strong>Controles:</strong></p>
           <ul>
-            <li><strong>Flechas / WASD:</strong> Mover al gatito.</li>
-            <li><strong>ESC:</strong> Pausar y abrir menú de pausa.</li>
+            <li><strong>Jugador 1:</strong> <em>W A S D</em> (o Flechas, según configuración) — Mover al gatito.</li>
+            <li><strong>Jugador 2:</strong> <em>I J K L</em> por defecto (o Flechas si eliges esa opción en Configuraciones) — Mover al ayudante.</li>
+            <li><strong>ESC:</strong> Pausar y abrir menú de pausa (ambos jugadores comparten la pausa).</li>
           </ul>
-          <p><strong>Vidas y peligros:</strong> Algunos niveles tienen obstáculos (tiburón, cangrejo, faro) que quitan vidas.</p>
-          <p><strong>Progreso:</strong> Verás un contador de basuras y una barra de progreso en pantalla.</p>
-          <p><strong>Mejor tiempo:</strong> El juego guarda el mejor tiempo por nivel y se muestra en la esquina superior izquierda.</p>
-          <p>¡Buena suerte y limpia la playa!</p>
+          <p><strong>Vidas y peligros:</strong> Cada jugador tiene su propio conjunto de vidas (por ejemplo 3). Obstáculos como tiburón, cangrejo y faro quitan vidas al jugador que los toca. Si un jugador pierde sus vidas queda inhabilitado (aparece la calavera) pero el otro puede continuar.</p>
+          <p><strong>Recoger basura:</strong> Ambos jugadores pueden recoger basura. El progreso del nivel se calcula con la suma de lo recogido por ambos (en multijugador) o por el único jugador (en modo single).</p>
+          <p><strong>Selección de personaje:</strong> Usa <em>Seleccionar personaje</em> en el menú para asignar el aspecto al Jugador 1 o Jugador 2 antes de iniciar.</p>
+          <p><strong>Progreso y mejor tiempo:</strong> Verás un contador de basuras y una barra de progreso en pantalla. El juego guarda el mejor tiempo por nivel y se muestra en la esquina superior izquierda.</p>
+          <p>¡Buena suerte y limpiad la playa juntos!</p>
         </div>
         <div style="margin-top:12px; display:flex; gap:10px; justify-content:center;">
           <button id="howToCloseBtn" style="padding:8px 12px;">Cerrar</button>
@@ -98,6 +108,13 @@
             <div style="padding:6px 0; font-weight:700;">Gatito Banana</div>
           </div>
         </div>
+        <div style="margin-top:12px; display:flex; gap:8px; align-items:center; justify-content:center;">
+          <label style="font-weight:700;">Asignar a:</label>
+          <select id="charAssignSelect">
+            <option value="1">Jugador 1</option>
+            <option value="2">Jugador 2</option>
+          </select>
+        </div>
         <div style="margin-top:14px; display:flex; gap:10px; justify-content:center;">
           <button id="closeCharBtn" style="padding:6px 10px;">Cerrar</button>
         </div>
@@ -116,6 +133,13 @@
         <div style="margin-top:12px; display:flex; gap:8px; align-items:center; justify-content:center;">
           <label style="font-weight:700;">Silenciar música:</label>
           <input id="muteCheckbox" type="checkbox" />
+        </div>
+        <div id="controlsP2Container" style="margin-top:12px; display:flex; gap:8px; align-items:center; justify-content:center;">
+          <label style="font-weight:700;">Controles Jugador 2:</label>
+          <select id="controlsP2Select">
+            <option value="arrows">Flechas</option>
+            <option value="ijkl">I J K L</option>
+          </select>
         </div>
         <!-- character select moved to its own overlay -->
         <div style="margin-top:16px; display:flex; gap:10px; justify-content:center;">

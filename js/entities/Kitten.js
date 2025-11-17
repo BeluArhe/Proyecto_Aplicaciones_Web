@@ -1,6 +1,7 @@
 class Kitten {
-    constructor(game) {
+    constructor(game, playerId = 1) {
         this.game = game;
+        this.playerId = Number(playerId) || 1;
         
         // Posición y tamaño (reducción: gatito más pequeño)
         this.x = 100;
@@ -35,16 +36,18 @@ class Kitten {
             this.sprite = new Image();
             this.sprite.onload = () => this._onSpriteLoad();
             this.sprite.onerror = () => this._onSpriteError();
-            // choose sprite from localStorage if present
+            // choose sprite from localStorage if present (support player 1 and 2)
             try {
-                const sel = localStorage.getItem('selectedKitten');
+                const key = (this.playerId === 2) ? 'selectedKitten2' : 'selectedKitten';
+                const sel = localStorage.getItem(key);
                 if (sel && sel !== 'default') {
                     this.sprite.src = sel;
                 } else {
-                    this.sprite.src = 'assets/b0b37662f658b5881f689f7ed6672d2a.png';
+                    // fallback different default for player 2 to visually distinguish
+                    this.sprite.src = (this.playerId === 2) ? 'assets/Gatito%202.png' : 'assets/b0b37662f658b5881f689f7ed6672d2a.png';
                 }
             } catch (e) {
-                this.sprite.src = 'assets/b0b37662f658b5881f689f7ed6672d2a.png';
+                this.sprite.src = (this.playerId === 2) ? 'assets/Gatito%202.png' : 'assets/b0b37662f658b5881f689f7ed6672d2a.png';
             }
         this.spritePadding = 6;
         // inclinación máxima en radianes cuando se mueve
@@ -57,6 +60,8 @@ class Kitten {
         this.isInvulnerable = false;
         this._invulTimer = 0; // segundos restantes
         this._invulElapsed = 0;
+        // estado de vida (si true, no puede moverse)
+        this.dead = false;
 
         // handler reutilizable para procesar la imagen cargada
         const processSprite = (img) => {
@@ -134,20 +139,24 @@ class Kitten {
             }
         };
         // iniciar intentando el archivo solicitado (hash filename). Fallbacks: cat/kitten/remoto
-        // Si el usuario seleccionó un personaje, usar esa ruta desde localStorage
+        // Si el usuario seleccionó un personaje, usar esa ruta desde localStorage (re-check)
         try {
-            const saved = localStorage.getItem('selectedKitten');
+            const key = (this.playerId === 2) ? 'selectedKitten2' : 'selectedKitten';
+            const saved = localStorage.getItem(key);
             if (saved && saved !== 'default') {
                 this.sprite.src = saved;
-            } else {
-                this.sprite.src = 'assets/b0b37662f658b5881f689f7ed6672d2a.png';
             }
-        } catch (e) {
-            this.sprite.src = 'assets/b0b37662f658b5881f689f7ed6672d2a.png';
-        }
+        } catch (e) {}
     }
 
     update(deltaTime) {
+        // si el gatito está "muerto" no procesa entrada ni movimiento
+        if (this.dead) {
+            this.velocityX = 0;
+            this.velocityY = 0;
+            this.isMoving = false;
+            return;
+        }
         this.handleInput();
         this.applyMovement();
         this.applyBoundaries();
@@ -278,7 +287,7 @@ class Kitten {
 
     handleInput() {
         const input = this.game.engine.inputHandler;
-        const movement = input.getMovement();
+        const movement = input.getMovement(this.playerId);
         // Reset velocity
         this.velocityX = 0;
         this.velocityY = 0;
@@ -420,6 +429,22 @@ class Kitten {
             try {
                 this.drawBag(ctx, centerX, centerY, dw, dh);
             } catch(e) {}
+            // si el gatito está muerto, dibujar una calavera encima
+            try {
+                if (this.dead) {
+                    ctx.save();
+                    const skull = '☠';
+                    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+                    ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+                    ctx.lineWidth = Math.max(2, Math.floor(Math.min(dw, dh) * 0.06));
+                    const skullSize = Math.max(18, Math.floor(Math.max(dw, dh) * 0.6));
+                    ctx.font = `${skullSize}px sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(skull, centerX, centerY - (dh * 0.15));
+                    ctx.restore();
+                }
+            } catch (e) {}
             ctx.restore();
             return; // ya se dibujó el sprite
         }
@@ -641,6 +666,21 @@ class Kitten {
             const approxW = this.width * (this.spriteScale || 1);
             const approxH = this.height * (this.spriteScale || 1);
             this.drawBag(ctx, cx, cy, approxW, approxH);
+        } catch (e) {}
+        // si el gatito está muerto, dibujar una calavera encima del fallback
+        try {
+            if (this.dead) {
+                ctx.save();
+                const skull = '☠';
+                const skullSize = Math.max(18, Math.floor(radius * 2.2));
+                ctx.font = `${skullSize}px sans-serif`;
+                ctx.fillStyle = 'rgba(255,255,255,0.95)';
+                ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(skull, cx, cy - radius * 0.6);
+                ctx.restore();
+            }
         } catch (e) {}
         ctx.restore();
     }

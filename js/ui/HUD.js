@@ -16,10 +16,14 @@ class HUD {
 
             // (Hearts are shown under the FPS box by the engine debug overlay.)
 
-            const caught = (this.game.kitten && this.game.kitten.bag) ? this.game.kitten.bag.length : 0;
+            const p1caught = (this.game.kitten && this.game.kitten.bag) ? this.game.kitten.bag.length : 0;
+            const p2caught = (this.game.kitten2 && this.game.kitten2.bag) ? this.game.kitten2.bag.length : 0;
+            const caught = p1caught + p2caught;
             const target = this.game.targetTrashCount || 0;
 
-            const text = `Basuras: ${caught} / ${target}`;
+            // Determine multiplayer mode: only show P2 info if multiplayer is enabled and game has kitten2
+            const isMultiplayer = (typeof localStorage !== 'undefined' && localStorage.getItem && localStorage.getItem('multiplayer') === '1' && this.game.kitten2);
+            const text = isMultiplayer ? `P1: ${p1caught}  P2: ${p2caught}  Total: ${caught} / ${target}` : `Basura: ${p1caught} / ${target}`;
             ctx.save();
             ctx.font = this.font;
             const metrics = ctx.measureText(text);
@@ -58,26 +62,7 @@ class HUD {
                 roundRect(ctx, progressX + 1, progressY + 1, Math.max(2, Math.floor((progressW - 2) * fraction)), progressH - 2, 6, true, false);
             } catch (e) {}
 
-            // --- mostrar vidas en esquina superior izquierda ---
-            try {
-                const lives = (this.game && typeof this.game.lives === 'number') ? Math.max(0, Math.floor(this.game.lives)) : 3;
-                const heart = '❤';
-                const livesText = 'Vidas: ' + (heart.repeat(lives));
-                ctx.save();
-                ctx.font = '16px Arial';
-                const lm = ctx.measureText(livesText);
-                const lw = lm.width + pad * 2;
-                const lh = 22;
-                const lx = 12;
-                const ly = 12;
-                ctx.fillStyle = 'rgba(0,0,0,0.45)';
-                roundRect(ctx, lx, ly, lw, lh, 6, true, false);
-                ctx.fillStyle = '#ff4d4d';
-                ctx.textAlign = 'left';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(livesText, lx + pad, ly + lh / 2);
-                ctx.restore();
-            } catch (e) {}
+            // (vidas se muestran junto al cronómetro en el centro superior)
 
             // --- dibujar cronómetro en la parte superior central ---
             const elapsed = Math.floor((this.game.elapsedTime || 0));
@@ -99,6 +84,39 @@ class HUD {
             ctx.textBaseline = 'middle';
             ctx.fillText(timeText, tboxX + tboxW / 2, tboxY + tboxH / 2);
             ctx.restore();
+
+            // --- mostrar vidas a la izquierda del cronómetro (por jugador) ---
+            try {
+                const heart = '❤';
+                const lp1 = (this.game && typeof this.game.livesP1 === 'number') ? Math.max(0, Math.floor(this.game.livesP1)) : 3;
+                const lp2 = (this.game && typeof this.game.livesP2 === 'number') ? Math.max(0, Math.floor(this.game.livesP2)) : 3;
+                const skull = '☠';
+                const p1Display = (lp1 > 0) ? heart.repeat(lp1) : skull;
+                const p2Display = (lp2 > 0) ? heart.repeat(lp2) : skull;
+                // also show numeric values to make updates obvious during debugging
+                let livesText = '';
+                if (isMultiplayer) {
+                    livesText = `P1: ${p1Display} (${lp1})  P2: ${p2Display} (${lp2})`;
+                } else {
+                    livesText = `Vidas: ${p1Display} (${lp1})`;
+                }
+                ctx.save();
+                ctx.font = '16px Arial';
+                const lm = ctx.measureText(livesText);
+                const lw = lm.width + pad * 2;
+                const lh = 22;
+                // position lives box to the left of the time box with a small gap
+                const gap = 8;
+                const lx = Math.max(8, tboxX - lw - gap);
+                const ly = tboxY;
+                ctx.fillStyle = 'rgba(0,0,0,0.45)';
+                roundRect(ctx, lx, ly, lw, lh, 6, true, false);
+                ctx.fillStyle = '#ff4d4d';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(livesText, lx + pad, ly + lh / 2);
+                ctx.restore();
+            } catch (e) {}
 
             // --- mostrar mejor tiempo (highscore) para este nivel en esquina superior izquierda ---
             try {

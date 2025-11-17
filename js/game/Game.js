@@ -3,6 +3,21 @@ class Game {
         this.engine = engine;
         this.level = parseInt(level) || 1;
         this.kitten = new Kitten(this);
+        // multiplayer support: if enabled, create a second kitten (helper / player 2)
+        try {
+            const multi = (localStorage.getItem('multiplayer') === '1');
+            if (multi) {
+                this.kitten2 = new Kitten(this, 2);
+                // place helper on the right side
+                try {
+                    const canvas = this.engine.canvas;
+                    this.kitten.x = 100;
+                    this.kitten.y = 300;
+                    this.kitten2.x = canvas.width - 140;
+                    this.kitten2.y = 300;
+                } catch (e) {}
+            }
+        } catch (e) {}
         // Theme audio (never gonna meow you up) - reuse global audio if present so it continues across levels
         try {
             if (window.themeAudio) {
@@ -141,7 +156,8 @@ class Game {
             const cy = sandY + 8;
             this.crab = new Crab(cx, cy);
 
-            this.lives = 3;
+            this.livesP1 = 3;
+            this.livesP2 = 3;
             this.targetTrashCount = this.trashEntities.length;
         }
 
@@ -181,16 +197,18 @@ class Game {
             const sy = baseWaterY - 6;
             this.shark = new Shark(sx, sy);
 
-            this.lives = 3;
+            this.livesP1 = 3;
+            this.livesP2 = 3;
             this.targetTrashCount = this.trashEntities.length;
         }
 
         this.targetTrashCollected = 0;
         // tiempo transcurrido en segundos (se acumula en update)
         this.elapsedTime = 0;
-        // vidas por defecto: 3 al iniciar cada nivel
-        this.lives = 3;
-        // initial lives are set per-level above (e.g. level 4 sets this.lives = 3).
+        // vidas por defecto: 3 al iniciar cada nivel (por jugador)
+        this.livesP1 = (typeof this.livesP1 === 'number') ? this.livesP1 : 3;
+        this.livesP2 = (typeof this.livesP2 === 'number') ? this.livesP2 : 3;
+        // initial lives are set per-level above (e.g. level 4 sets this.livesP1/livesP2 = 3).
         // only set a safe last-hit time so cooldown checks behave correctly
         this._lastHitTime = -999;
 
@@ -375,6 +393,10 @@ class Game {
 
     update(deltaTime) {
         this.kitten.update(deltaTime);
+        // actualizar segundo jugador si existe
+        try {
+            if (this.kitten2 && typeof this.kitten2.update === 'function') this.kitten2.update(deltaTime);
+        } catch (e) {}
         // actualizar tiempo transcurrido (segundos)
         this.elapsedTime = (this.elapsedTime || 0) + Math.max(0, deltaTime / 1000);
         // comprobar colisiones simples con basura estática
@@ -405,14 +427,41 @@ class Game {
                 } catch (e) {
                     collides = this._isCollidingWithKitten(t);
                 }
-
+                // if not colliding with player 1, check player 2 (if exists)
+                if (!collides && this.kitten2) {
+                    try {
+                        if (typeof this.kitten2.getBagRect === 'function') {
+                            const bag2 = this.kitten2.getBagRect();
+                            const tx1 = t.x - (t.width/2 || 8);
+                            const ty1 = t.y - (t.height/2 || 8);
+                            const tx2 = tx1 + (t.width || 16);
+                            const ty2 = ty1 + (t.height || 16);
+                            const b2x1 = bag2.x;
+                            const b2y1 = bag2.y;
+                            const b2x2 = b2x1 + bag2.w;
+                            const b2y2 = b2y1 + bag2.h;
+                            collides = !(tx2 < b2x1 || tx1 > b2x2 || ty2 < b2y1 || ty1 > b2y2);
+                            if (collides) {
+                                // mark that kitten2 should pick it
+                                t._pickedBy = 2;
+                            }
+                        } else {
+                            // fallback: use same collision as player1 detection
+                            // do nothing
+                        }
+                    } catch (e) { /* ignore */ }
+                }
                 if (collides) {
-                    const added = this.kitten.addToBag(t);
+                    // decide who picks it: default player1, unless flagged for player2
+                    const picker = (t._pickedBy === 2 && this.kitten2) ? this.kitten2 : this.kitten;
+                    const added = picker.addToBag(t);
                     if (added) {
                         // eliminar del mundo
                         this.trashEntities.splice(i, 1);
-                        this.targetTrashCollected = this.kitten.bag.length;
-                        // comprobar objetivo
+                        // actualizar conteo total recogido (sum ambos jugadores si existen)
+                        const p1 = (this.kitten && this.kitten.bag) ? this.kitten.bag.length : 0;
+                        const p2 = (this.kitten2 && this.kitten2.bag) ? this.kitten2.bag.length : 0;
+                        this.targetTrashCollected = p1 + p2;
                         if (this.targetTrashCollected >= this.targetTrashCount) {
                             console.log('🎉 Nivel completado');
                             // For non-final levels, keep the theme playing; only stop/reset if this is the final level
@@ -635,25 +684,43 @@ class Game {
         // Nivel 3: comprobar tiburón si existe (muestra daño por impacto en vez de Game Over inmediato)
         if (this.level === 3 && this.shark) {
             // ensure lives initialized
-            if (!this.lives) this.lives = 3;
+            if (typeof this.livesP1 !== 'number') this.livesP1 = 3;
+            if (typeof this.livesP2 !== 'number') this.livesP2 = 3;
             try {
                 this.shark.update(deltaTime, this.engine);
                 // comprobar colisión gato-tiburón
                 const sb = this.shark.getBounds();
-                const kx1 = this.kitten.x;
-                const ky1 = this.kitten.y;
-                const kx2 = this.kitten.x + this.kitten.width;
-                const ky2 = this.kitten.y + this.kitten.height;
                 const sx1 = sb.x;
                 const sy1 = sb.y;
                 const sx2 = sb.x + sb.w;
                 const sy2 = sb.y + sb.h;
-                const overlapShark = !(kx2 < sx1 || kx1 > sx2 || ky2 < sy1 || ky1 > sy2);
-                if (overlapShark) {
+                let overlap1 = false;
+                let overlap2 = false;
+                try {
+                    // player 1
+                    if (this.kitten) {
+                        const kx1 = this.kitten.x;
+                        const ky1 = this.kitten.y;
+                        const kx2 = this.kitten.x + this.kitten.width;
+                        const ky2 = this.kitten.y + this.kitten.height;
+                        overlap1 = !(kx2 < sx1 || kx1 > sx2 || ky2 < sy1 || ky1 > sy2);
+                    }
+                    // player 2
+                    if (this.kitten2) {
+                        const kx1b = this.kitten2.x;
+                        const ky1b = this.kitten2.y;
+                        const kx2b = this.kitten2.x + this.kitten2.width;
+                        const ky2b = this.kitten2.y + this.kitten2.height;
+                        overlap2 = !(kx2b < sx1 || kx1b > sx2 || ky2b < sy1 || ky1b > sy2);
+                    }
+                } catch (e) { /* ignore */ }
+                if (overlap1 || overlap2) {
                     const now = this.elapsedTime || 0;
+                    console.log('🐟 Shark collision check:', { overlap1, overlap2, lastHit: this._lastHitTime, now });
                     if (now - (this._lastHitTime || 0) > 1.0) {
                         this._lastHitTime = now;
-                        this._damage(1);
+                        if (overlap1) { console.log('🐟 Shark hits P1'); this._damage(1, 1); }
+                        if (overlap2) { console.log('🐟 Shark hits P2'); this._damage(2, 1); }
                     }
                 }
             } catch (e) { /* ignore */ }
@@ -662,26 +729,42 @@ class Game {
         // Nivel 4: comprobar faro y cangrejo
         if (this.level === 4) {
             // ensure lives initialized
-            if (!this.lives) this.lives = 3;
+            if (typeof this.livesP1 !== 'number') this.livesP1 = 3;
+            if (typeof this.livesP2 !== 'number') this.livesP2 = 3;
             // update crab
             if (this.crab) {
                 try { this.crab.update(deltaTime, this.engine); } catch (e) {}
-                // collision crab-kitten
+                // collision crab-kitten (check both players)
                 const cb = this.crab.getBounds();
-                const kx1 = this.kitten.x;
-                const ky1 = this.kitten.y;
-                const kx2 = this.kitten.x + this.kitten.width;
-                const ky2 = this.kitten.y + this.kitten.height;
                 const cx1 = cb.x;
                 const cy1 = cb.y;
                 const cx2 = cb.x + cb.w;
                 const cy2 = cb.y + cb.h;
-                const overlapCrab = !(kx2 < cx1 || kx1 > cx2 || ky2 < cy1 || ky1 > cy2);
-                if (overlapCrab) {
+                let overlap1 = false;
+                let overlap2 = false;
+                try {
+                    if (this.kitten) {
+                        const kx1 = this.kitten.x;
+                        const ky1 = this.kitten.y;
+                        const kx2 = this.kitten.x + this.kitten.width;
+                        const ky2 = this.kitten.y + this.kitten.height;
+                        overlap1 = !(kx2 < cx1 || kx1 > cx2 || ky2 < cy1 || ky1 > cy2);
+                    }
+                    if (this.kitten2) {
+                        const kx1b = this.kitten2.x;
+                        const ky1b = this.kitten2.y;
+                        const kx2b = this.kitten2.x + this.kitten2.width;
+                        const ky2b = this.kitten2.y + this.kitten2.height;
+                        overlap2 = !(kx2b < cx1 || kx1b > cx2 || ky2b < cy1 || ky1b > cy2);
+                    }
+                } catch (e) {}
+                if (overlap1 || overlap2) {
                     const now = this.elapsedTime || 0;
+                    console.log('🦀 Crab collision check:', { overlap1, overlap2, lastHit: this._lastHitTime, now });
                     if (now - (this._lastHitTime || 0) > 1.2) {
                         this._lastHitTime = now;
-                        this._damage(1);
+                        if (overlap1) { console.log('🦀 Crab hits P1'); this._damage(1, 1); }
+                        if (overlap2) { console.log('🦀 Crab hits P2'); this._damage(2, 1); }
                     }
                 }
             }
@@ -689,20 +772,35 @@ class Game {
             // lighthouse collision
             if (this.lighthouse) {
                 const lb = this.lighthouse.getBounds();
-                const kx1 = this.kitten.x;
-                const ky1 = this.kitten.y;
-                const kx2 = this.kitten.x + this.kitten.width;
-                const ky2 = this.kitten.y + this.kitten.height;
                 const lx1 = lb.x;
                 const ly1 = lb.y;
                 const lx2 = lb.x + lb.w;
                 const ly2 = lb.y + lb.h;
-                const overlapLight = !(kx2 < lx1 || kx1 > lx2 || ky2 < ly1 || ky1 > ly2);
-                if (overlapLight) {
+                let overlap1 = false;
+                let overlap2 = false;
+                try {
+                    if (this.kitten) {
+                        const kx1 = this.kitten.x;
+                        const ky1 = this.kitten.y;
+                        const kx2 = this.kitten.x + this.kitten.width;
+                        const ky2 = this.kitten.y + this.kitten.height;
+                        overlap1 = !(kx2 < lx1 || kx1 > lx2 || ky2 < ly1 || ky1 > ly2);
+                    }
+                    if (this.kitten2) {
+                        const kx1b = this.kitten2.x;
+                        const ky1b = this.kitten2.y;
+                        const kx2b = this.kitten2.x + this.kitten2.width;
+                        const ky2b = this.kitten2.y + this.kitten2.height;
+                        overlap2 = !(kx2b < lx1 || kx1b > lx2 || ky2b < ly1 || ky1b > ly2);
+                    }
+                } catch (e) {}
+                if (overlap1 || overlap2) {
                     const now = this.elapsedTime || 0;
+                    console.log('🚨 Lighthouse collision check:', { overlap1, overlap2, lastHit: this._lastHitTime, now });
                     if (now - (this._lastHitTime || 0) > 0.8) {
                         this._lastHitTime = now;
-                        this._damage(1);
+                        if (overlap1) { console.log('🚨 Lighthouse hits P1'); this._damage(1, 1); }
+                        if (overlap2) { console.log('🚨 Lighthouse hits P2'); this._damage(2, 1); }
                     }
                 }
             }
@@ -711,26 +809,41 @@ class Game {
         // Nivel 5: comprobar faro y tiburón (ambos quitan vidas)
         if (this.level === 5) {
             // ensure lives initialized
-            if (!this.lives) this.lives = 3;
+            if (!this.livesP1) this.livesP1 = 3;
+            if (!this.livesP2) this.livesP2 = 3;
 
             // update shark (patrulla) y comprobar colisión
             if (this.shark) {
                 try { this.shark.update(deltaTime, this.engine); } catch (e) {}
                 const sb = this.shark.getBounds();
-                const kx1 = this.kitten.x;
-                const ky1 = this.kitten.y;
-                const kx2 = this.kitten.x + this.kitten.width;
-                const ky2 = this.kitten.y + this.kitten.height;
                 const sx1 = sb.x;
                 const sy1 = sb.y;
                 const sx2 = sb.x + sb.w;
                 const sy2 = sb.y + sb.h;
-                const overlapShark = !(kx2 < sx1 || kx1 > sx2 || ky2 < sy1 || ky1 > sy2);
-                if (overlapShark) {
+                let overlap1 = false;
+                let overlap2 = false;
+                try {
+                    if (this.kitten) {
+                        const kx1 = this.kitten.x;
+                        const ky1 = this.kitten.y;
+                        const kx2 = this.kitten.x + this.kitten.width;
+                        const ky2 = this.kitten.y + this.kitten.height;
+                        overlap1 = !(kx2 < sx1 || kx1 > sx2 || ky2 < sy1 || ky1 > sy2);
+                    }
+                    if (this.kitten2) {
+                        const kx1b = this.kitten2.x;
+                        const ky1b = this.kitten2.y;
+                        const kx2b = this.kitten2.x + this.kitten2.width;
+                        const ky2b = this.kitten2.y + this.kitten2.height;
+                        overlap2 = !(kx2b < sx1 || kx1b > sx2 || ky2b < sy1 || ky1b > sy2);
+                    }
+                } catch (e) {}
+                if (overlap1 || overlap2) {
                     const now = this.elapsedTime || 0;
                     if (now - (this._lastHitTime || 0) > 1.0) {
                         this._lastHitTime = now;
-                        this._damage(1);
+                        if (overlap1) this._damage(1, 1);
+                        if (overlap2) this._damage(2, 1);
                     }
                 }
             }
@@ -738,20 +851,34 @@ class Game {
             // lighthouse collision
             if (this.lighthouse) {
                 const lb = this.lighthouse.getBounds();
-                const kx1 = this.kitten.x;
-                const ky1 = this.kitten.y;
-                const kx2 = this.kitten.x + this.kitten.width;
-                const ky2 = this.kitten.y + this.kitten.height;
                 const lx1 = lb.x;
                 const ly1 = lb.y;
                 const lx2 = lb.x + lb.w;
                 const ly2 = lb.y + lb.h;
-                const overlapLight = !(kx2 < lx1 || kx1 > lx2 || ky2 < ly1 || ky1 > ly2);
-                if (overlapLight) {
+                let overlap1 = false;
+                let overlap2 = false;
+                try {
+                    if (this.kitten) {
+                        const kx1 = this.kitten.x;
+                        const ky1 = this.kitten.y;
+                        const kx2 = this.kitten.x + this.kitten.width;
+                        const ky2 = this.kitten.y + this.kitten.height;
+                        overlap1 = !(kx2 < lx1 || kx1 > lx2 || ky2 < ly1 || ky1 > ly2);
+                    }
+                    if (this.kitten2) {
+                        const kx1b = this.kitten2.x;
+                        const ky1b = this.kitten2.y;
+                        const kx2b = this.kitten2.x + this.kitten2.width;
+                        const ky2b = this.kitten2.y + this.kitten2.height;
+                        overlap2 = !(kx2b < lx1 || kx1b > lx2 || ky2b < ly1 || ky1b > ly2);
+                    }
+                } catch (e) {}
+                if (overlap1 || overlap2) {
                     const now = this.elapsedTime || 0;
                     if (now - (this._lastHitTime || 0) > 0.8) {
                         this._lastHitTime = now;
-                        this._damage(1);
+                        if (overlap1) this._damage(1, 1);
+                        if (overlap2) this._damage(2, 1);
                     }
                 }
             }
@@ -781,27 +908,63 @@ class Game {
         }
 
         // dibujar el gatito por encima
-        this.kitten.render(ctx);
+        try { if (this.kitten && typeof this.kitten.render === 'function') this.kitten.render(ctx); } catch (e) {}
+        try { if (this.kitten2 && typeof this.kitten2.render === 'function') this.kitten2.render(ctx); } catch (e) {}
     }
 
-    _damage(amount) {
-        this.lives = Math.max(0, (this.lives || 0) - amount);
-        console.log('❤ Vidas restantes:', this.lives);
+    _damage(playerId, amount) {
+        amount = typeof amount === 'number' ? amount : 1;
         try {
-            // reproducir sonido de daño si es posible
-            this._playDamageSound();
-        } catch (e) {}
+            // ensure numeric types (avoid strings from accidental assignments)
+            this.livesP1 = Number(this.livesP1) || 0;
+            this.livesP2 = Number(this.livesP2) || 0;
+            const beforeP1 = this.livesP1;
+            const beforeP2 = this.livesP2;
+            if (playerId === 2) {
+                this.livesP2 = Math.max(0, this.livesP2 - amount);
+            } else {
+                this.livesP1 = Math.max(0, this.livesP1 - amount);
+            }
+            console.log(`💥 Daño aplicado a P${playerId}: -${amount} | Vidas antes P1=${beforeP1} P2=${beforeP2} -> ahora P1=${this.livesP1} P2=${this.livesP2}`);
+        } catch (e) { console.warn('Error al aplicar daño', e); }
+        try { this._playDamageSound(); } catch (e) {}
         try {
-            // activar invulnerabilidad visual en el gatito
-            if (this.kitten && typeof this.kitten.setInvulnerable === 'function') {
+            // invulnerabilidad solo para el jugador afectado
+            if (playerId === 1 && this.kitten && typeof this.kitten.setInvulnerable === 'function') {
                 this.kitten.setInvulnerable(1.0);
             }
+            if (playerId === 2 && this.kitten2 && typeof this.kitten2.setInvulnerable === 'function') {
+                this.kitten2.setInvulnerable(1.0);
+            }
         } catch (e) {}
-        // flash effect could be added; if lives <=0 -> game over
-        if (this.lives <= 0) {
+
+        // marcar jugador muerto si llego a 0 vidas
+        try {
+            if (playerId === 1 && this.livesP1 <= 0 && this.kitten) this.kitten.dead = true;
+            if (playerId === 2 && this.livesP2 <= 0 && this.kitten2) this.kitten2.dead = true;
+        } catch (e) {}
+
+        // si ambos jugadores están sin vidas -> Game Over (o si es single-player y el único murió)
+        const p1dead = (this.livesP1 <= 0);
+        const p2dead = (this.kitten2 ? (this.livesP2 <= 0) : true);
+        if (p1dead && p2dead) {
             try { this.engine.state = 'PAUSED'; } catch (e) {}
+            console.log('🛑 Game Over triggered: P1dead=' + p1dead + ' P2dead=' + p2dead);
             const overlay = document.getElementById('gameOverOverlay');
             if (overlay) {
+                // ajustar título/mensaje según modo de juego (single / multi)
+                try {
+                    const titleEl = document.getElementById('gameOverTitle');
+                    const msgEl = document.getElementById('gameOverMsg');
+                    if (titleEl) titleEl.textContent = 'Game Over';
+                    if (msgEl) {
+                        if (this.kitten2) {
+                            msgEl.textContent = 'Los gatitos han sido atrapados...';
+                        } else {
+                            msgEl.textContent = 'El gatito ha sido atrapado...';
+                        }
+                    }
+                } catch (e) {}
                 overlay.classList.remove('hidden');
                 try {
                     const panel = document.getElementById('gameOverPanel');
@@ -819,12 +982,18 @@ class Game {
                         }
                     }
                 } catch (e) {}
+                try { if (this.happyAudio) { try { this.happyAudio.pause(); } catch (e) {} try { this.happyAudio.currentTime = 0; } catch (e) {} } } catch (e) {}
+                try { if (this.themeAudio && !this.themeAudio.paused) { this.themeAudio.pause(); } } catch (e) {}
+                try { this._stopHappyAudio && this._stopHappyAudio(); } catch (e) {}
+                try { this._stopSadAudio(); } catch (e) {}
                 try { this._startSadAudio(); } catch (e) {}
                 const repeatBtn = document.getElementById('repeatAfterGameOverBtn');
                 const returnBtn = document.getElementById('returnMenuFromGameOverBtn');
                 const self = this;
                 if (repeatBtn) repeatBtn.onclick = () => {
                     try { self._stopSadAudio(); } catch (e) {}
+                    try { if (self.happyAudio) { try { self.happyAudio.pause(); } catch (e) {} try { self.happyAudio.currentTime = 0; } catch (e) {} } } catch (e) {}
+                    try { if (self._removeDancingElements) self._removeDancingElements(); } catch (e) {}
                     try {
                         if (typeof window.changeLevel === 'function') {
                             window.changeLevel(self.level);
@@ -834,7 +1003,7 @@ class Game {
                     try { if (window.themeAudio && window.themeAudio.paused) { window.themeAudio.play().catch(() => {}); } } catch (e) {}
                     window.location.href = window.location.pathname + '?level=' + self.level;
                 };
-                if (returnBtn) returnBtn.onclick = () => { try { self._stopSadAudio(); } catch (e) {} window.location.href = window.location.pathname; };
+                if (returnBtn) returnBtn.onclick = () => { try { self._stopSadAudio(); } catch (e) {} try { if (self.happyAudio) { try { self.happyAudio.pause(); } catch (e) {} try { self.happyAudio.currentTime = 0; } catch (e) {} } } catch (e) {} try { if (self._removeDancingElements) self._removeDancingElements(); } catch (e) {} window.location.href = window.location.pathname; };
             } else {
                 setTimeout(() => alert('Game Over'), 50);
             }

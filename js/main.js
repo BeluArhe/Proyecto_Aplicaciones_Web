@@ -105,6 +105,38 @@ document.addEventListener('DOMContentLoaded', () => {
             // display element for the numeric value
             const contrastValueEl = document.getElementById('contrastValue');
             const CHAR_KEY = 'selectedKitten';
+            // elements for multiplayer and character assignment
+            const multiplayerCheckbox = document.getElementById('multiplayerCheckbox');
+            const charAssignSelect = document.getElementById('charAssignSelect');
+            const controlsP2Select = document.getElementById('controlsP2Select');
+
+            // initialize multiplayer checkbox from storage
+            try {
+                if (multiplayerCheckbox) {
+                    const initMulti = (localStorage.getItem('multiplayer') === '1');
+                    multiplayerCheckbox.checked = initMulti;
+                    const updateSettingsVisibility = () => {
+                        try {
+                            const container = document.getElementById('controlsP2Container');
+                            const isMulti = multiplayerCheckbox && multiplayerCheckbox.checked;
+                            if (container) container.style.display = isMulti ? 'flex' : 'none';
+                        } catch (e) {}
+                    };
+                    // ensure initial visibility
+                    updateSettingsVisibility();
+                    multiplayerCheckbox.addEventListener('change', (ev) => {
+                        try { localStorage.setItem('multiplayer', ev.target.checked ? '1' : '0'); } catch (e) {}
+                        try { updateSettingsVisibility(); } catch (e) {}
+                    });
+                }
+                if (controlsP2Select) {
+                    const saved = localStorage.getItem('controlsP2') || 'arrows';
+                    controlsP2Select.value = saved;
+                    controlsP2Select.addEventListener('change', (ev) => {
+                        try { localStorage.setItem('controlsP2', String(ev.target.value)); } catch (e) {}
+                    });
+                }
+            } catch (e) {}
 
         function applyContrast(valuePercent, persist = true) {
             // valuePercent: 0..100
@@ -249,16 +281,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 } catch (e) {}
                 const onSelect = () => {
-                    try { localStorage.setItem(CHAR_KEY, src); } catch (err) {}
+                    try {
+                        // decide which storage key to set based on selector (player 1 or 2)
+                        let assign = '1';
+                        try { if (charAssignSelect) assign = String(charAssignSelect.value || '1'); } catch (e) {}
+                        const key = (assign === '2') ? 'selectedKitten2' : CHAR_KEY;
+                        try { localStorage.setItem(key, src); } catch (err) {}
+                    } catch (e) {}
                     console.log('Personaje seleccionado:', src);
                     // Update current kitten sprite if game running
                     try {
                         if (window.gameEngine && window.gameEngine.game && window.gameEngine.game.kitten) {
-                            if (src && src !== 'default') window.gameEngine.game.kitten.sprite.src = src;
-                            else {
-                                // reset to default sprite
-                                window.gameEngine.game.kitten.sprite.src = 'assets/b0b37662f658b5881f689f7ed6672d2a.png';
-                            }
+                            // update the appropriate running kitten(s)
+                            try { const assign = (charAssignSelect && charAssignSelect.value) ? String(charAssignSelect.value) : '1';
+                                if (assign === '2' && window.gameEngine.game.kitten2) {
+                                    if (src && src !== 'default') window.gameEngine.game.kitten2.sprite.src = src;
+                                } else {
+                                    if (src && src !== 'default') window.gameEngine.game.kitten.sprite.src = src;
+                                    else window.gameEngine.game.kitten.sprite.src = 'assets/b0b37662f658b5881f689f7ed6672d2a.png';
+                                }
+                            } catch (e) {}
                         }
                     } catch (err) { }
                     // close overlay after selection

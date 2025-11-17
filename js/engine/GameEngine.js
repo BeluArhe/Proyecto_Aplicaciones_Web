@@ -35,6 +35,27 @@ class GameEngine {
 
         // Evitar que el primer deltaTime sea enorme al iniciar (causa que elapsedTime se infle)
         try { this.lastTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : 0; } catch (e) { this.lastTime = 0; }
+
+        // Responsive canvas resizing: adapt canvas to window size with sensible max limits
+        const resizeCanvas = () => {
+            try {
+                // leave a small margin for UI overlays
+                const marginW = 40;
+                const marginH = 80;
+                const maxW = 1280;
+                const maxH = 840;
+                const targetW = Math.max(640, Math.min(maxW, window.innerWidth - marginW));
+                const targetH = Math.max(480, Math.min(maxH, window.innerHeight - marginH));
+                // only change if different to avoid unnecessary layout thrash
+                if (this.canvas.width !== Math.floor(targetW) || this.canvas.height !== Math.floor(targetH)) {
+                    this.canvas.width = Math.floor(targetW);
+                    this.canvas.height = Math.floor(targetH);
+                    console.log('🔧 Canvas resized to', this.canvas.width, 'x', this.canvas.height);
+                }
+            } catch (e) { /* ignore resize errors */ }
+        };
+        // initial resize and event hookup
+        try { resizeCanvas(); window.addEventListener('resize', resizeCanvas); this._resizeHandler = resizeCanvas; } catch (e) {}
         // Iniciar game loop mediante requestAnimationFrame para recibir timestamp inicial correcto
         try { this.rafId = requestAnimationFrame((time) => this.gameLoop(time)); } catch (e) { this.gameLoop(); }
     }
@@ -171,6 +192,7 @@ class GameEngine {
             this.rafId = null;
         }
         this.state = 'STOPPED';
+        try { if (this._resizeHandler) { window.removeEventListener('resize', this._resizeHandler); this._resizeHandler = null; } } catch (e) {}
         console.log('🛑 GameEngine detenido');
     }
 }

@@ -20,6 +20,14 @@ body {
     box-shadow: 0 0 20px rgba(0,0,0,0.3);
 }
 
+/* Make canvas responsive and larger by default */
+#gameCanvas {
+    width: 96vw;
+    max-width: 1280px;
+    height: auto;
+    display: block;
+}
+
 /* Small styles for options controls inside menus */
 .options-panel {
     display:flex;
