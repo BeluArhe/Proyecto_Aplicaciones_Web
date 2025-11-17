@@ -125,14 +125,3 @@ Si quieres mejorar el juego:
 - Para pull requests, incluye una descripción breve y pasos para probar tu cambio.
 
 
-## Licencia
-Este repositorio no incluye una licencia explícita en los archivos actuales. Si deseas una licencia, añade un `LICENSE` (por ejemplo MIT) y actualiza el README.
-
-
----
-
-Si quieres que añada:
-- Un script `npm`/`package.json` y servidor de desarrollo (`lite-server`/`http-server`),
-- Instrucciones de build (si decides empaquetar assets o minificar), o
-- Un archivo `CONTRIBUTING.md` más detallado,
-hazmelo saber y lo agrego.
